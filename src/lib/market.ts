@@ -23,7 +23,7 @@ export const toMarketItems = (bazaar: Record<string, BazaarProduct>): MarketItem
 export const getAuctionSignals = (auctions: Auction[]): AuctionSignal[] => {
   const groups = new Map<string, Auction[]>();
   for (const auction of auctions) {
-    const key = auction.item_name.replace(/Â§./g, "");
+    const key = auction.item_name.replace(/§./g, "");
     groups.set(key, [...(groups.get(key) ?? []), auction]);
   }
 

@@ -27,11 +27,11 @@ export function TrackedBuys({ buys, products, onRemove }: TrackedBuysProps) {
                 <div>
                   <strong>{cleanName(buy.item)}</strong>
                   <span>
-                    Bought {buy.quantity} at {formatCoins(buy.buyPrice)} Â· P/L {formatCoins(profit)}
+                    Bought {buy.quantity} at {formatCoins(buy.buyPrice)} - P/L {formatCoins(profit)}
                   </span>
                 </div>
                 <button aria-label="Remove tracked buy" onClick={() => onRemove(buy.id)}>
-                  Ã—
+                  x
                 </button>
               </div>
             );

@@ -15,7 +15,7 @@ export function HeroPanel({ status, lastUpdated, productCount, auctionSignalCoun
         <p className="statusLine">
           <span className={`statusDot ${status === "Live" ? "live" : ""}`} />
           {status}
-          {lastUpdated ? ` Â· ${new Date(lastUpdated).toLocaleTimeString()}` : ""}
+          {lastUpdated ? ` - ${new Date(lastUpdated).toLocaleTimeString()}` : ""}
         </p>
         <h2>Watch Bazaar prices, spot unusual margins, and track when your buys reach profit.</h2>
       </div>
