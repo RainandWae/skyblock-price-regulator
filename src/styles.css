@@ -1,0 +1,436 @@
+:root {
+  color: #17201c;
+  background: #f4f7f2;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+main {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.topbar,
+.heroPanel,
+.layout,
+.lowerGrid {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.eyebrow,
+.statusLine,
+.panelHeader p,
+.detailHeader p,
+.empty,
+.heroStats span,
+.metrics span,
+.auctionItem span,
+.trackedItem span {
+  color: #607169;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  font-weight: 800;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+}
+
+h2 {
+  max-width: 760px;
+  margin-top: 12px;
+  font-size: clamp(1.5rem, 3vw, 3.2rem);
+  line-height: 1.02;
+}
+
+h3 {
+  font-size: 1rem;
+}
+
+.iconButton,
+.topbar button,
+.trackedItem button {
+  border: 1px solid #cad7d0;
+  background: #ffffff;
+  color: #24362e;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.heroPanel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 22px;
+  align-items: end;
+  padding: 28px;
+  border: 1px solid #d7dfd9;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(68, 118, 99, 0.16), transparent 42%),
+    linear-gradient(45deg, #ffffff, #eef5f1);
+}
+
+.statusLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.statusDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #c24f37;
+}
+
+.statusDot.live {
+  background: #22a164;
+}
+
+.heroStats {
+  display: grid;
+  grid-template-columns: repeat(3, 118px);
+  gap: 10px;
+}
+
+.heroStats div {
+  min-height: 112px;
+  display: grid;
+  align-content: space-between;
+  padding: 14px;
+  border: 1px solid #cfdbd4;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.heroStats strong {
+  font-size: 1.55rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.marketPanel,
+.detailPanel,
+.panel {
+  border: 1px solid #d7dfd9;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.panelHeader {
+  min-height: 76px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #edf1ee;
+}
+
+.panelHeader.compact {
+  min-height: 62px;
+}
+
+.searchBox {
+  min-width: min(320px, 44vw);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+}
+
+.searchBox input,
+.buyBox input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #17201c;
+}
+
+.table {
+  padding: 8px;
+}
+
+.row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) repeat(3, minmax(80px, 0.5fr));
+  gap: 12px;
+  align-items: center;
+  padding: 12px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:hover,
+.row.selected {
+  background: #eef5f1;
+}
+
+.row span:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.positive {
+  color: #0e8450;
+  font-weight: 800;
+}
+
+.detailPanel {
+  padding: 18px;
+}
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.miniChart {
+  width: 100%;
+  aspect-ratio: 2.2 / 1;
+  margin: 18px 0;
+  border: 1px solid #edf1ee;
+  border-radius: 8px;
+  background: #f8faf8;
+}
+
+.gridLine {
+  stroke: #e1e9e4;
+  stroke-width: 1;
+}
+
+.chartLine {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chartLine.blue {
+  stroke: #3176a6;
+}
+
+.chartLine.green {
+  stroke: #14945c;
+}
+
+.chartLine.red {
+  stroke: #bd563e;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.metrics span {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid #edf1ee;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
+.metrics strong {
+  color: #17201c;
+  font-size: 1rem;
+}
+
+.buyBox {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.buyBox label {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  color: #607169;
+  font-size: 0.8rem;
+}
+
+.buyBox button {
+  grid-column: 1 / -1;
+  min-height: 42px;
+  border: 0;
+  border-radius: 8px;
+  background: #1d6646;
+  color: #ffffff;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.lowerGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.alertList,
+.auctionList,
+.trackedList {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.alert,
+.auctionItem,
+.trackedItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #edf1ee;
+  border-radius: 8px;
+}
+
+.alert div,
+.auctionItem div,
+.trackedItem div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.alert span,
+.auctionItem span,
+.trackedItem span {
+  font-size: 0.84rem;
+}
+
+.alert.hot {
+  border-color: #f0c6a7;
+  background: #fff8ef;
+}
+
+.alert.good {
+  border-color: #c6dfd0;
+  background: #f3faf5;
+}
+
+.auctionItem,
+.trackedItem {
+  justify-content: space-between;
+}
+
+.auctionItem b {
+  text-align: right;
+}
+
+.trackedItem {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+}
+
+.trackedItem button {
+  width: 30px;
+  height: 30px;
+}
+
+.empty {
+  padding: 10px;
+  line-height: 1.5;
+}
+
+@media (max-width: 980px) {
+  main {
+    padding: 14px;
+  }
+
+  .heroPanel,
+  .layout,
+  .lowerGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroStats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .panelHeader,
+  .topbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .searchBox {
+    min-width: 100%;
+  }
+
+  .row {
+    grid-template-columns: 1fr 74px 74px 56px;
+    gap: 8px;
+    font-size: 0.84rem;
+  }
+
+  .heroStats,
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+}
