@@ -427,6 +427,31 @@ input:focus-visible {
   font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
 }
 
+.itemCell,
+.row .positive {
+  display: grid;
+  gap: 2px;
+}
+
+.itemCell strong {
+  color: var(--text);
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemCell small,
+.row .positive small {
+  color: var(--subtle);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.row .positive small {
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+}
+
 .positive {
   color: #57f287;
   font-weight: 800;

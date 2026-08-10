@@ -32,10 +32,18 @@ export function BazaarTable({ items, selectedId, query, onQueryChange, onSelect 
         </div>
         {items.slice(0, 14).map((item) => (
           <button className={`row ${selectedId === item.id ? "selected" : ""}`} key={item.id} onClick={() => onSelect(item.id)}>
-            <span>{item.name}</span>
+            <span className="itemCell">
+              <strong>{item.name}</strong>
+              <small>
+                {formatCoins(item.weeklyCoins)} weekly coins - {item.suggestedUnits} suggested units
+              </small>
+            </span>
             <span>{formatCoins(item.buyPrice)}</span>
             <span>{formatCoins(item.sellPrice)}</span>
-            <span className={item.spread >= 2_500 ? "positive" : ""}>{formatCoins(item.spread)}</span>
+            <span className={item.spread >= 2_500 ? "positive" : ""}>
+              {formatCoins(item.spread)}
+              <small>{item.spreadPercent.toFixed(1)}%</small>
+            </span>
           </button>
         ))}
       </div>
