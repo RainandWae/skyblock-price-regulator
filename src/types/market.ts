@@ -48,8 +48,12 @@ export type MarketItem = {
   buyPrice: number;
   sellPrice: number;
   volume: number;
+  weeklyCoins: number;
   spread: number;
   spreadPercent: number;
+  practicalScore: number;
+  suggestedUnits: number;
+  suggestedProfit: number;
   orders: number;
 };
 
@@ -64,7 +68,7 @@ export type AuctionSignal = {
 export type MarketAlert = {
   id: string;
   item: string;
-  type: "high" | "low" | "spread" | "profit";
+  type: "high" | "low" | "spread" | "profit" | "watch";
   message: string;
   severity: "hot" | "good" | "watch";
 };
