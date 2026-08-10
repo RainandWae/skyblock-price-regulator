@@ -48,6 +48,8 @@ export type TrackedBuy = {
 export type MarketItem = {
   id: string;
   name: string;
+  enchantmentLevel: number | null;
+  isIgnoredEnchantment: boolean;
   buyPrice: number;
   sellPrice: number;
   volume: number;

@@ -9,10 +9,17 @@ import type {
 } from "../types/market";
 import { cleanName, formatCoins } from "./format";
 
+const getEnchantmentLevel = (productId: string) => {
+  if (!productId.startsWith("ENCHANTMENT_")) return null;
+  const match = productId.match(/_(\d+)$/);
+  return match ? Number(match[1]) : null;
+};
+
 export const toMarketItems = (bazaar: Record<string, BazaarProduct>): MarketItem[] =>
   Object.values(bazaar)
     .map((product) => {
       const quick = product.quick_status;
+      const enchantmentLevel = getEnchantmentLevel(product.product_id);
       const spread = quick.buyPrice - quick.sellPrice;
       const spreadPercent = quick.sellPrice ? (spread / quick.sellPrice) * 100 : 0;
       const volume = quick.buyMovingWeek + quick.sellMovingWeek;
@@ -26,6 +33,8 @@ export const toMarketItems = (bazaar: Record<string, BazaarProduct>): MarketItem
       return {
         id: product.product_id,
         name: cleanName(product.product_id),
+        enchantmentLevel,
+        isIgnoredEnchantment: enchantmentLevel !== null && enchantmentLevel > 1,
         buyPrice: quick.buyPrice,
         sellPrice: quick.sellPrice,
         volume,
@@ -60,7 +69,8 @@ export const getAuctionSignals = (auctions: Auction[]): AuctionSignal[] => {
 };
 
 export const getMarketAlerts = (products: MarketItem[], tracked: TrackedBuy[], signalProducts = products): MarketAlert[] => {
-  const marketAlerts = signalProducts
+  const visibleSignals = signalProducts.filter((item) => !item.isIgnoredEnchantment);
+  const marketAlerts = visibleSignals
     .filter((item) => {
       const isExpensiveEnough = item.sellPrice >= 25_000;
       const hasMeaningfulSpread = item.spread >= 2_500;
@@ -79,7 +89,7 @@ export const getMarketAlerts = (products: MarketItem[], tracked: TrackedBuy[], s
       message: `${formatCoins(item.spread)} spread, ${item.spreadPercent.toFixed(1)}% margin, about ${item.suggestedUnits} units for ${formatCoins(item.suggestedProfit)} gross`,
     }));
 
-  const watchAlerts = signalProducts
+  const watchAlerts = visibleSignals
     .filter((item) => item.sellPrice >= 1_000_000 && item.spreadPercent >= 0.8 && item.spread >= 25_000 && item.volume >= 40)
     .sort((a, b) => b.spread - a.spread)
     .slice(0, 3)
@@ -154,6 +164,6 @@ export const applyFlipFilters = (items: MarketItem[], filters: FlipFilters) =>
       const meetsSpread = item.spread >= filters.minSpread;
       const meetsCoins = item.weeklyCoins >= filters.minWeeklyCoins;
       const meetsUnits = item.suggestedUnits <= filters.maxSuggestedUnits;
-      return meetsPrice && meetsSpread && meetsCoins && meetsUnits;
+      return !item.isIgnoredEnchantment && meetsPrice && meetsSpread && meetsCoins && meetsUnits;
     })
     .sort((a, b) => b.practicalScore - a.practicalScore);

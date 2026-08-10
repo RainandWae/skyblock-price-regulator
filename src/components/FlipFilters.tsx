@@ -23,6 +23,7 @@ export function FlipFilters({ filters, resultCount, totalCount, onChange }: Flip
       <div className="filterSummary">
         <strong>{resultCount}</strong>
         <span>of {totalCount} Bazaar items match</span>
+        <span>Level 2+ enchants ignored</span>
       </div>
       <div className="presetGroup" aria-label="Flip filter preset">
         {presets.map((preset) => (
