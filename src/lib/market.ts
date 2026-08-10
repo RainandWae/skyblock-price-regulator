@@ -23,12 +23,14 @@ export const toMarketItems = (bazaar: Record<string, BazaarProduct>): MarketItem
       const spread = quick.buyPrice - quick.sellPrice;
       const spreadPercent = quick.sellPrice ? (spread / quick.sellPrice) * 100 : 0;
       const volume = quick.buyMovingWeek + quick.sellMovingWeek;
+      const sideFlow = Math.min(quick.buyMovingWeek, quick.sellMovingWeek);
+      const orderDepth = Math.min(quick.buyOrders, quick.sellOrders);
       const weeklyCoins = ((quick.buyPrice + quick.sellPrice) / 2) * volume;
       const suggestedUnits = Math.max(1, Math.ceil(1_000_000 / Math.max(spread, 1)));
       const suggestedProfit = spread * suggestedUnits;
       const priceWeight = Math.log10(Math.max(quick.sellPrice, 1));
-      const liquidityWeight = Math.log10(Math.max(volume, 1));
-      const practicalScore = spread > 0 ? spread * Math.max(spreadPercent, 0) * priceWeight * liquidityWeight : 0;
+      const flowScore = Math.log10(Math.max(sideFlow, 1)) * Math.log10(Math.max(orderDepth, 1));
+      const practicalScore = spread > 0 ? spread * Math.max(spreadPercent, 0) * priceWeight * flowScore : 0;
 
       return {
         id: product.product_id,
@@ -38,13 +40,20 @@ export const toMarketItems = (bazaar: Record<string, BazaarProduct>): MarketItem
         buyPrice: quick.buyPrice,
         sellPrice: quick.sellPrice,
         volume,
+        buyMovingWeek: quick.buyMovingWeek,
+        sellMovingWeek: quick.sellMovingWeek,
+        sideFlow,
         weeklyCoins,
         spread,
         spreadPercent,
         practicalScore,
+        flowScore,
         suggestedUnits,
         suggestedProfit,
         orders: quick.buyOrders + quick.sellOrders,
+        buyOrders: quick.buyOrders,
+        sellOrders: quick.sellOrders,
+        orderDepth,
       };
     })
     .sort((a, b) => b.volume - a.volume);
@@ -75,7 +84,7 @@ export const getMarketAlerts = (products: MarketItem[], tracked: TrackedBuy[], s
       const isExpensiveEnough = item.sellPrice >= 25_000;
       const hasMeaningfulSpread = item.spread >= 2_500;
       const hasUsefulMargin = item.spreadPercent >= 1.2 && item.spreadPercent <= 45;
-      const hasLiquidity = item.volume >= 250 && item.orders >= 8 && item.weeklyCoins >= 50_000_000;
+      const hasLiquidity = item.sideFlow >= 1_000 && item.orderDepth >= 5 && item.weeklyCoins >= 75_000_000;
       const needsReasonableUnits = item.suggestedUnits <= 400;
       return isExpensiveEnough && hasMeaningfulSpread && hasUsefulMargin && hasLiquidity && needsReasonableUnits;
     })
@@ -128,7 +137,9 @@ export const getPresetFilters = (preset: FlipFilters["preset"]): FlipFilters => 
       preset,
       minSellPrice: 25_000,
       minSpread: 2_500,
-      minWeeklyCoins: 50_000_000,
+      minWeeklyCoins: 100_000_000,
+      minSideFlow: 2_500,
+      minOrderDepth: 6,
       maxSuggestedUnits: 400,
     },
     expensive: {
@@ -136,6 +147,8 @@ export const getPresetFilters = (preset: FlipFilters["preset"]): FlipFilters => 
       minSellPrice: 1_000_000,
       minSpread: 25_000,
       minWeeklyCoins: 30_000_000,
+      minSideFlow: 120,
+      minOrderDepth: 2,
       maxSuggestedUnits: 80,
     },
     "low-count": {
@@ -143,6 +156,8 @@ export const getPresetFilters = (preset: FlipFilters["preset"]): FlipFilters => 
       minSellPrice: 100_000,
       minSpread: 10_000,
       minWeeklyCoins: 20_000_000,
+      minSideFlow: 250,
+      minOrderDepth: 2,
       maxSuggestedUnits: 50,
     },
     liquid: {
@@ -150,6 +165,8 @@ export const getPresetFilters = (preset: FlipFilters["preset"]): FlipFilters => 
       minSellPrice: 10_000,
       minSpread: 1_500,
       minWeeklyCoins: 250_000_000,
+      minSideFlow: 20_000,
+      minOrderDepth: 10,
       maxSuggestedUnits: 600,
     },
   };
@@ -163,7 +180,9 @@ export const applyFlipFilters = (items: MarketItem[], filters: FlipFilters) =>
       const meetsPrice = item.sellPrice >= filters.minSellPrice;
       const meetsSpread = item.spread >= filters.minSpread;
       const meetsCoins = item.weeklyCoins >= filters.minWeeklyCoins;
+      const meetsFlow = item.sideFlow >= filters.minSideFlow;
+      const meetsDepth = item.orderDepth >= filters.minOrderDepth;
       const meetsUnits = item.suggestedUnits <= filters.maxSuggestedUnits;
-      return !item.isIgnoredEnchantment && meetsPrice && meetsSpread && meetsCoins && meetsUnits;
+      return !item.isIgnoredEnchantment && meetsPrice && meetsSpread && meetsCoins && meetsFlow && meetsDepth && meetsUnits;
     })
     .sort((a, b) => b.practicalScore - a.practicalScore);

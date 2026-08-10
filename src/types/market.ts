@@ -53,13 +53,20 @@ export type MarketItem = {
   buyPrice: number;
   sellPrice: number;
   volume: number;
+  buyMovingWeek: number;
+  sellMovingWeek: number;
+  sideFlow: number;
   weeklyCoins: number;
   spread: number;
   spreadPercent: number;
   practicalScore: number;
+  flowScore: number;
   suggestedUnits: number;
   suggestedProfit: number;
   orders: number;
+  buyOrders: number;
+  sellOrders: number;
+  orderDepth: number;
 };
 
 export type AuctionSignal = {
@@ -85,5 +92,7 @@ export type FlipFilters = {
   minSellPrice: number;
   minSpread: number;
   minWeeklyCoins: number;
+  minSideFlow: number;
+  minOrderDepth: number;
   maxSuggestedUnits: number;
 };

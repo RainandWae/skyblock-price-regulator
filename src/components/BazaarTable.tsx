@@ -35,7 +35,7 @@ export function BazaarTable({ items, selectedId, query, onQueryChange, onSelect 
             <span className="itemCell">
               <strong>{item.name}</strong>
               <small>
-                {formatCoins(item.weeklyCoins)} weekly coins - {item.suggestedUnits} suggested units
+                {formatCoins(item.weeklyCoins)} weekly - {item.sideFlow.toLocaleString()} flow - {item.suggestedUnits} units
               </small>
             </span>
             <span>{formatCoins(item.buyPrice)}</span>
