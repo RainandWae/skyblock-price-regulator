@@ -26,8 +26,8 @@ export function BazaarTable({ items, selectedId, query, onQueryChange, onSelect 
       <div className="table">
         <div className="tableHeader" aria-hidden="true">
           <span>Item</span>
-          <span>Buy</span>
-          <span>Sell</span>
+          <span>Buy order</span>
+          <span>Sell order</span>
           <span>Profit</span>
         </div>
         {items.slice(0, 14).map((item) => (
@@ -38,11 +38,11 @@ export function BazaarTable({ items, selectedId, query, onQueryChange, onSelect 
                 {formatCoins(item.weeklyCoins)} weekly - {item.sideFlow.toLocaleString()} flow - {item.suggestedUnits} units
               </small>
             </span>
-            <span>{formatCoins(item.buyPrice)}</span>
-            <span>{formatCoins(item.sellPrice)}</span>
+            <span>{formatCoins(item.buyOrderPrice)}</span>
+            <span>{formatCoins(item.sellOrderPrice)}</span>
             <span className={item.spread >= 2_500 ? "positive" : ""}>
-              {formatCoins(item.spread)}
-              <small>{item.spreadPercent.toFixed(1)}%</small>
+              {formatCoins(item.orderFlipSpread)}
+              <small>{item.orderFlipPercent.toFixed(1)}%</small>
             </span>
           </button>
         ))}

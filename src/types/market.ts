@@ -52,6 +52,10 @@ export type MarketItem = {
   isIgnoredEnchantment: boolean;
   buyPrice: number;
   sellPrice: number;
+  buyOrderPrice: number;
+  sellOrderPrice: number;
+  instantBuyPrice: number;
+  instantSellPrice: number;
   volume: number;
   buyMovingWeek: number;
   sellMovingWeek: number;
@@ -59,6 +63,8 @@ export type MarketItem = {
   weeklyCoins: number;
   spread: number;
   spreadPercent: number;
+  orderFlipSpread: number;
+  orderFlipPercent: number;
   practicalScore: number;
   flowScore: number;
   suggestedUnits: number;

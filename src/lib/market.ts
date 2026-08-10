@@ -20,15 +20,17 @@ export const toMarketItems = (bazaar: Record<string, BazaarProduct>): MarketItem
     .map((product) => {
       const quick = product.quick_status;
       const enchantmentLevel = getEnchantmentLevel(product.product_id);
-      const spread = quick.buyPrice - quick.sellPrice;
-      const spreadPercent = quick.sellPrice ? (spread / quick.sellPrice) * 100 : 0;
+      const buyOrderPrice = quick.sellPrice;
+      const sellOrderPrice = quick.buyPrice;
+      const spread = sellOrderPrice - buyOrderPrice;
+      const spreadPercent = buyOrderPrice ? (spread / buyOrderPrice) * 100 : 0;
       const volume = quick.buyMovingWeek + quick.sellMovingWeek;
       const sideFlow = Math.min(quick.buyMovingWeek, quick.sellMovingWeek);
       const orderDepth = Math.min(quick.buyOrders, quick.sellOrders);
-      const weeklyCoins = ((quick.buyPrice + quick.sellPrice) / 2) * volume;
+      const weeklyCoins = ((sellOrderPrice + buyOrderPrice) / 2) * volume;
       const suggestedUnits = Math.max(1, Math.ceil(1_000_000 / Math.max(spread, 1)));
       const suggestedProfit = spread * suggestedUnits;
-      const priceWeight = Math.log10(Math.max(quick.sellPrice, 1));
+      const priceWeight = Math.log10(Math.max(buyOrderPrice, 1));
       const flowScore = Math.log10(Math.max(sideFlow, 1)) * Math.log10(Math.max(orderDepth, 1));
       const practicalScore = spread > 0 ? spread * Math.max(spreadPercent, 0) * priceWeight * flowScore : 0;
 
@@ -37,8 +39,12 @@ export const toMarketItems = (bazaar: Record<string, BazaarProduct>): MarketItem
         name: cleanName(product.product_id),
         enchantmentLevel,
         isIgnoredEnchantment: enchantmentLevel !== null && enchantmentLevel > 1,
-        buyPrice: quick.buyPrice,
-        sellPrice: quick.sellPrice,
+        buyPrice: sellOrderPrice,
+        sellPrice: buyOrderPrice,
+        buyOrderPrice,
+        sellOrderPrice,
+        instantBuyPrice: sellOrderPrice,
+        instantSellPrice: buyOrderPrice,
         volume,
         buyMovingWeek: quick.buyMovingWeek,
         sellMovingWeek: quick.sellMovingWeek,
@@ -46,6 +52,8 @@ export const toMarketItems = (bazaar: Record<string, BazaarProduct>): MarketItem
         weeklyCoins,
         spread,
         spreadPercent,
+        orderFlipSpread: spread,
+        orderFlipPercent: spreadPercent,
         practicalScore,
         flowScore,
         suggestedUnits,
@@ -81,7 +89,7 @@ export const getMarketAlerts = (products: MarketItem[], tracked: TrackedBuy[], s
   const visibleSignals = signalProducts.filter((item) => !item.isIgnoredEnchantment);
   const marketAlerts = visibleSignals
     .filter((item) => {
-      const isExpensiveEnough = item.sellPrice >= 25_000;
+      const isExpensiveEnough = item.buyOrderPrice >= 25_000;
       const hasMeaningfulSpread = item.spread >= 2_500;
       const hasUsefulMargin = item.spreadPercent >= 1.2 && item.spreadPercent <= 45;
       const hasLiquidity = item.sideFlow >= 1_000 && item.orderDepth >= 5 && item.weeklyCoins >= 75_000_000;
@@ -95,11 +103,11 @@ export const getMarketAlerts = (products: MarketItem[], tracked: TrackedBuy[], s
       item: item.name,
       type: "spread" as const,
       severity: item.suggestedProfit >= 2_000_000 ? ("hot" as const) : ("good" as const),
-      message: `${formatCoins(item.spread)} spread, ${item.spreadPercent.toFixed(1)}% margin, about ${item.suggestedUnits} units for ${formatCoins(item.suggestedProfit)} gross`,
+      message: `${formatCoins(item.orderFlipSpread)} order spread, ${item.orderFlipPercent.toFixed(1)}% margin, about ${item.suggestedUnits} units for ${formatCoins(item.suggestedProfit)} gross`,
     }));
 
   const watchAlerts = visibleSignals
-    .filter((item) => item.sellPrice >= 1_000_000 && item.spreadPercent >= 0.8 && item.spread >= 25_000 && item.volume >= 40)
+    .filter((item) => item.buyOrderPrice >= 1_000_000 && item.orderFlipPercent >= 0.8 && item.orderFlipSpread >= 25_000 && item.volume >= 40)
     .sort((a, b) => b.spread - a.spread)
     .slice(0, 3)
     .map((item) => ({
@@ -107,7 +115,7 @@ export const getMarketAlerts = (products: MarketItem[], tracked: TrackedBuy[], s
       item: item.name,
       type: "watch" as const,
       severity: "watch" as const,
-      message: `Expensive item watch: ${formatCoins(item.spread)} spread on ${formatCoins(item.sellPrice)} sell price`,
+      message: `Expensive item watch: ${formatCoins(item.orderFlipSpread)} order spread on ${formatCoins(item.sellOrderPrice)} sell order`,
     }));
 
   const profitAlerts = tracked.flatMap((buy) => {
@@ -115,7 +123,7 @@ export const getMarketAlerts = (products: MarketItem[], tracked: TrackedBuy[], s
     if (!market) return [];
     const feePercent = buy.feePercent ?? 1.25;
     const target = buy.targetSellPrice ?? buy.buyPrice * (1 + buy.targetPercent / 100);
-    const netSell = market.sellPrice * (1 - feePercent / 100);
+    const netSell = market.sellOrderPrice * (1 - feePercent / 100);
     if (netSell < target) return [];
     return [
       {
@@ -177,7 +185,7 @@ export const getPresetFilters = (preset: FlipFilters["preset"]): FlipFilters => 
 export const applyFlipFilters = (items: MarketItem[], filters: FlipFilters) =>
   items
     .filter((item) => {
-      const meetsPrice = item.sellPrice >= filters.minSellPrice;
+      const meetsPrice = item.buyOrderPrice >= filters.minSellPrice;
       const meetsSpread = item.spread >= filters.minSpread;
       const meetsCoins = item.weeklyCoins >= filters.minWeeklyCoins;
       const meetsFlow = item.sideFlow >= filters.minSideFlow;

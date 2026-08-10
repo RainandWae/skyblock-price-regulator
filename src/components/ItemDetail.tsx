@@ -31,11 +31,11 @@ export function ItemDetail({
           <p>{item?.id ?? "Refresh market data to begin"}</p>
         </div>
       </div>
-      <MiniChart points={history.length > 1 ? history : [0, item?.buyPrice ?? 0]} tone="blue" />
+      <MiniChart points={history.length > 1 ? history : [0, item?.buyOrderPrice ?? 0]} tone="blue" />
       <div className="metrics">
-        <span>Instant buy <strong>{formatCoins(item?.buyPrice ?? 0)}</strong></span>
-        <span>Instant sell <strong>{formatCoins(item?.sellPrice ?? 0)}</strong></span>
-        <span>Spread <strong>{formatCoins(item?.spread ?? 0)}</strong></span>
+        <span>Buy order <strong>{formatCoins(item?.buyOrderPrice ?? 0)}</strong></span>
+        <span>Sell order <strong>{formatCoins(item?.sellOrderPrice ?? 0)}</strong></span>
+        <span>Order spread <strong>{formatCoins(item?.orderFlipSpread ?? 0)}</strong></span>
       </div>
       <div className="buyBox">
         <label>

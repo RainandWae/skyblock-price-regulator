@@ -13,7 +13,7 @@ const getBuyMetrics = (buy: TrackedBuy, products: MarketItem[]) => {
   const market = products.find((item) => item.id === buy.item);
   const feePercent = buy.feePercent ?? 1.25;
   const targetSellPrice = buy.targetSellPrice ?? buy.buyPrice * (1 + buy.targetPercent / 100);
-  const currentSell = market?.sellPrice ?? buy.buyPrice;
+  const currentSell = market?.sellOrderPrice ?? buy.buyPrice;
   const netSell = currentSell * (1 - feePercent / 100);
   const grossProfit = (currentSell - buy.buyPrice) * buy.quantity;
   const netProfit = (netSell - buy.buyPrice) * buy.quantity;
@@ -53,7 +53,7 @@ export function TrackedBuys({ buys, products, onRemove, onUpdate }: TrackedBuysP
                       />
                     </label>
                     <label>
-                      Buy
+                      Buy order
                       <input
                         type="number"
                         min={0}
