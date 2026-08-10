@@ -63,8 +63,8 @@ type Alert = {
   severity: "hot" | "good" | "watch";
 };
 
-const BAZAAR_URL = "https://api.hypixel.net/v2/skyblock/bazaar";
-const AUCTIONS_URL = "https://api.hypixel.net/v2/skyblock/auctions?page=0";
+const BAZAAR_URL = "/api/bazaar";
+const AUCTIONS_URL = "/api/auctions?page=0";
 const HISTORY_KEY = "sbr:bazaar-history";
 const TRACKED_KEY = "sbr:tracked-buys";
 
