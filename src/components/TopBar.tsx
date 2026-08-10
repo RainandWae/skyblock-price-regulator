@@ -8,7 +8,6 @@ export function TopBar({ onRefresh }: TopBarProps) {
   return (
     <section className="topbar">
       <div>
-        <p className="eyebrow">Hypixel SkyBlock market app</p>
         <h1>SkyBlock Price Regulator</h1>
       </div>
       <button className="iconButton" onClick={onRefresh} aria-label="Refresh market">
