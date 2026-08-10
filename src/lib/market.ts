@@ -1,4 +1,12 @@
-import type { Auction, AuctionSignal, BazaarProduct, MarketAlert, MarketItem, TrackedBuy } from "../types/market";
+import type {
+  Auction,
+  AuctionSignal,
+  BazaarProduct,
+  FlipFilters,
+  MarketAlert,
+  MarketItem,
+  TrackedBuy,
+} from "../types/market";
 import { cleanName, formatCoins } from "./format";
 
 export const toMarketItems = (bazaar: Record<string, BazaarProduct>): MarketItem[] =>
@@ -51,8 +59,8 @@ export const getAuctionSignals = (auctions: Auction[]): AuctionSignal[] => {
     .slice(0, 8);
 };
 
-export const getMarketAlerts = (products: MarketItem[], tracked: TrackedBuy[]): MarketAlert[] => {
-  const marketAlerts = products
+export const getMarketAlerts = (products: MarketItem[], tracked: TrackedBuy[], signalProducts = products): MarketAlert[] => {
+  const marketAlerts = signalProducts
     .filter((item) => {
       const isExpensiveEnough = item.sellPrice >= 25_000;
       const hasMeaningfulSpread = item.spread >= 2_500;
@@ -71,7 +79,7 @@ export const getMarketAlerts = (products: MarketItem[], tracked: TrackedBuy[]): 
       message: `${formatCoins(item.spread)} spread, ${item.spreadPercent.toFixed(1)}% margin, about ${item.suggestedUnits} units for ${formatCoins(item.suggestedProfit)} gross`,
     }));
 
-  const watchAlerts = products
+  const watchAlerts = signalProducts
     .filter((item) => item.sellPrice >= 1_000_000 && item.spreadPercent >= 0.8 && item.spread >= 25_000 && item.volume >= 40)
     .sort((a, b) => b.spread - a.spread)
     .slice(0, 3)
@@ -103,3 +111,49 @@ export const getMarketAlerts = (products: MarketItem[], tracked: TrackedBuy[]): 
 
   return [...profitAlerts, ...marketAlerts, ...watchAlerts];
 };
+
+export const getPresetFilters = (preset: FlipFilters["preset"]): FlipFilters => {
+  const presets: Record<FlipFilters["preset"], FlipFilters> = {
+    balanced: {
+      preset,
+      minSellPrice: 25_000,
+      minSpread: 2_500,
+      minWeeklyCoins: 50_000_000,
+      maxSuggestedUnits: 400,
+    },
+    expensive: {
+      preset,
+      minSellPrice: 1_000_000,
+      minSpread: 25_000,
+      minWeeklyCoins: 30_000_000,
+      maxSuggestedUnits: 80,
+    },
+    "low-count": {
+      preset,
+      minSellPrice: 100_000,
+      minSpread: 10_000,
+      minWeeklyCoins: 20_000_000,
+      maxSuggestedUnits: 50,
+    },
+    liquid: {
+      preset,
+      minSellPrice: 10_000,
+      minSpread: 1_500,
+      minWeeklyCoins: 250_000_000,
+      maxSuggestedUnits: 600,
+    },
+  };
+
+  return presets[preset];
+};
+
+export const applyFlipFilters = (items: MarketItem[], filters: FlipFilters) =>
+  items
+    .filter((item) => {
+      const meetsPrice = item.sellPrice >= filters.minSellPrice;
+      const meetsSpread = item.spread >= filters.minSpread;
+      const meetsCoins = item.weeklyCoins >= filters.minWeeklyCoins;
+      const meetsUnits = item.suggestedUnits <= filters.maxSuggestedUnits;
+      return meetsPrice && meetsSpread && meetsCoins && meetsUnits;
+    })
+    .sort((a, b) => b.practicalScore - a.practicalScore);

@@ -3,13 +3,14 @@ import { fetchItemHistory, fetchMarketData } from "./api/market";
 import { AlertsPanel } from "./components/AlertsPanel";
 import { AuctionScanner } from "./components/AuctionScanner";
 import { BazaarTable } from "./components/BazaarTable";
+import { FlipFilters } from "./components/FlipFilters";
 import { HeroPanel } from "./components/HeroPanel";
 import { ItemDetail } from "./components/ItemDetail";
 import { TopBar } from "./components/TopBar";
 import { TrackedBuys } from "./components/TrackedBuys";
-import { getAuctionSignals, getMarketAlerts, toMarketItems } from "./lib/market";
+import { applyFlipFilters, getAuctionSignals, getMarketAlerts, getPresetFilters, toMarketItems } from "./lib/market";
 import { loadJson } from "./lib/storage";
-import type { Auction, BazaarHistoryPoint, BazaarProduct, TrackedBuy } from "./types/market";
+import type { Auction, BazaarHistoryPoint, BazaarProduct, FlipFilters as FlipFiltersType, TrackedBuy } from "./types/market";
 
 const TRACKED_KEY = "sbr:tracked-buys";
 
@@ -22,6 +23,7 @@ export default function App() {
   const [selectedItem, setSelectedItem] = useState("BOOSTER_COOKIE");
   const [quantity, setQuantity] = useState(1);
   const [targetPercent, setTargetPercent] = useState(8);
+  const [filters, setFilters] = useState<FlipFiltersType>(() => getPresetFilters("balanced"));
   const [status, setStatus] = useState("Ready");
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
@@ -50,11 +52,13 @@ export default function App() {
   }, [selectedItem, lastUpdated]);
 
   const products = useMemo(() => toMarketItems(bazaar), [bazaar]);
-  const filtered = products.filter((item) => `${item.name} ${item.id}`.toLowerCase().includes(query.toLowerCase()));
+  const filtered = applyFlipFilters(products, filters).filter((item) =>
+    `${item.name} ${item.id}`.toLowerCase().includes(query.toLowerCase()),
+  );
   const selected = products.find((item) => item.id === selectedItem) ?? filtered[0] ?? products[0];
   const selectedHistory = historyPoints.map((point) => point.buyPrice).filter((value) => Number.isFinite(value));
   const auctionSignals = useMemo(() => getAuctionSignals(auctions), [auctions]);
-  const alerts = useMemo(() => getMarketAlerts(products, tracked), [products, tracked]);
+  const alerts = useMemo(() => getMarketAlerts(products, tracked, filtered), [products, tracked, filtered]);
 
   const recordBuy = () => {
     if (!selected) return;
@@ -105,6 +109,16 @@ export default function App() {
           onRecordBuy={recordBuy}
         />
       </section>
+
+      <FlipFilters
+        filters={filters}
+        resultCount={filtered.length}
+        totalCount={products.length}
+        onChange={(nextFilters) => {
+          const presetChanged = nextFilters.preset !== filters.preset;
+          setFilters(presetChanged ? getPresetFilters(nextFilters.preset) : nextFilters);
+        }}
+      />
 
       <section className="lowerGrid">
         <AlertsPanel alerts={alerts} />

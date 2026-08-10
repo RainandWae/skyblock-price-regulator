@@ -50,6 +50,7 @@ main {
 .topbar,
 .heroPanel,
 .layout,
+.filterPanel,
 .lowerGrid {
   width: min(1440px, 100%);
   margin: 0 auto;
@@ -203,6 +204,87 @@ input:focus-visible {
   grid-template-columns: minmax(0, 1fr) 390px;
   gap: 18px;
   margin-top: 18px;
+}
+
+.filterPanel {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
+}
+
+.filterSummary {
+  display: grid;
+  gap: 2px;
+  min-width: 142px;
+}
+
+.filterSummary strong {
+  color: var(--text);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.filterSummary span,
+.filterGrid span {
+  color: var(--subtle);
+  font-size: 0.78rem;
+}
+
+.presetGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.presetGroup button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-soft);
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background var(--motion),
+    border-color var(--motion),
+    color var(--motion),
+    transform var(--motion);
+}
+
+.presetGroup button.active {
+  border-color: rgba(88, 101, 242, 0.68);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.filterGrid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.filterGrid label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.filterGrid input {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-soft);
+  color: var(--text);
 }
 
 .marketPanel,
@@ -591,8 +673,13 @@ input:focus-visible {
 
   .heroPanel,
   .layout,
+  .filterPanel,
   .lowerGrid {
     grid-template-columns: 1fr;
+  }
+
+  .filterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .heroStats {
@@ -637,5 +724,9 @@ input:focus-visible {
 
   .trackedActions {
     flex-direction: row;
+  }
+
+  .filterGrid {
+    grid-template-columns: 1fr;
   }
 }

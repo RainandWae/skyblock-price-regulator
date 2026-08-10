@@ -75,3 +75,13 @@ export type MarketAlert = {
   message: string;
   severity: "hot" | "good" | "watch";
 };
+
+export type FlipPreset = "balanced" | "expensive" | "low-count" | "liquid";
+
+export type FlipFilters = {
+  preset: FlipPreset;
+  minSellPrice: number;
+  minSpread: number;
+  minWeeklyCoins: number;
+  maxSuggestedUnits: number;
+};
