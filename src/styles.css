@@ -266,6 +266,20 @@ input:focus-visible {
   padding: 8px;
 }
 
+.tableHeader {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) repeat(3, minmax(80px, 0.5fr));
+  gap: 12px;
+  padding: 8px 10px 10px;
+  color: var(--subtle);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.tableHeader span:not(:first-child) {
+  text-align: right;
+}
+
 .row {
   width: 100%;
   display: grid;
@@ -523,6 +537,11 @@ input:focus-visible {
     grid-template-columns: 1fr 74px 74px 56px;
     gap: 8px;
     font-size: 0.84rem;
+  }
+
+  .tableHeader {
+    grid-template-columns: 1fr 74px 74px 56px;
+    gap: 8px;
   }
 
   .heroStats,

@@ -24,6 +24,12 @@ export function BazaarTable({ items, selectedId, query, onQueryChange, onSelect 
         </label>
       </div>
       <div className="table">
+        <div className="tableHeader" aria-hidden="true">
+          <span>Item</span>
+          <span>Buy</span>
+          <span>Sell</span>
+          <span>Margin</span>
+        </div>
         {items.slice(0, 14).map((item) => (
           <button className={`row ${selectedId === item.id ? "selected" : ""}`} key={item.id} onClick={() => onSelect(item.id)}>
             <span>{item.name}</span>
