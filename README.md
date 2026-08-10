@@ -1,6 +1,6 @@
 # SkyBlock Price Regulator
 
-A Hypixel SkyBlock Bazaar and Auction House price tracker with anomaly alerts, flip tracking, and profit graphs.
+A Hypixel SkyBlock market tracker for Bazaar and Auction House prices, with price anomaly detection, flip tracking, profit alerts, and easy-to-read market charts.
 
 ## Current features
 
