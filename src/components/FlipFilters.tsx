@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from "react";
 import type { FlipFilters as FlipFiltersType, FlipPreset } from "../types/market";
 import { formatCoins } from "../lib/format";
+import { getCompactNumberWarning, parseCompactNumberInput } from "../lib/quantity";
 
 type FlipFiltersProps = {
   filters: FlipFiltersType;
@@ -14,6 +16,65 @@ const presets: Array<{ id: FlipPreset; label: string }> = [
   { id: "low-count", label: "Low count" },
   { id: "liquid", label: "Liquid" },
 ];
+
+const formatInputNumber = (value: number) => value.toLocaleString("en-US");
+
+type CompactFilterFieldProps = {
+  label: string;
+  value: number;
+  summary: string;
+  allowZero?: boolean;
+  onChange: (value: number) => void;
+};
+
+function CompactFilterField({ label, value, summary, allowZero = true, onChange }: CompactFilterFieldProps) {
+  const [rawValue, setRawValue] = useState(formatInputNumber(value));
+  const [wasChecked, setWasChecked] = useState(false);
+  const lastValueRef = useRef(value);
+  const warning = getCompactNumberWarning(rawValue, label, { allowZero });
+  const isInvalid = wasChecked && warning !== "";
+
+  useEffect(() => {
+    if (lastValueRef.current !== value) {
+      const parsedRawValue = parseCompactNumberInput(rawValue);
+      lastValueRef.current = value;
+      if (parsedRawValue === value) return;
+
+      setRawValue(formatInputNumber(value));
+      setWasChecked(false);
+    }
+  }, [rawValue, value]);
+
+  const handleChange = (nextValue: string) => {
+    setRawValue(nextValue);
+    const parsedValue = parseCompactNumberInput(nextValue);
+    const nextWarning = getCompactNumberWarning(nextValue, label, { allowZero });
+    if (nextWarning === "" && Number.isFinite(parsedValue)) {
+      onChange(parsedValue);
+    }
+  };
+
+  return (
+    <label className={isInvalid ? "invalid" : ""}>
+      <span className="fieldTitle">{label}</span>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={rawValue}
+        onBlur={() => {
+          setWasChecked(true);
+          const parsedValue = parseCompactNumberInput(rawValue);
+          if (getCompactNumberWarning(rawValue, label, { allowZero }) === "" && Number.isFinite(parsedValue)) {
+            setRawValue(formatInputNumber(parsedValue));
+          }
+        }}
+        onChange={(event) => handleChange(event.target.value)}
+      />
+      <span>{summary}</span>
+      {isInvalid ? <span className="fieldWarning">{warning}</span> : null}
+    </label>
+  );
+}
 
 export function FlipFilters({ filters, resultCount, totalCount, onChange }: FlipFiltersProps) {
   const update = (updates: Partial<FlipFiltersType>) => onChange({ ...filters, ...updates });
@@ -36,40 +97,26 @@ export function FlipFilters({ filters, resultCount, totalCount, onChange }: Flip
           </button>
         ))}
       </div>
+      <span className="filterHint">k, m, b, t accepted</span>
       <div className="filterGrid">
-        <label>
-          Min sell
-          <input
-            type="number"
-            min={0}
-            step={25_000}
-            value={filters.minSellPrice}
-            onChange={(event) => update({ minSellPrice: Number(event.target.value) })}
-          />
-          <span>{formatCoins(filters.minSellPrice)}</span>
-        </label>
-        <label>
-          Min profit
-          <input
-            type="number"
-            min={0}
-            step={2_500}
-            value={filters.minSpread}
-            onChange={(event) => update({ minSpread: Number(event.target.value) })}
-          />
-          <span>{formatCoins(filters.minSpread)}</span>
-        </label>
-        <label>
-          Weekly coins
-          <input
-            type="number"
-            min={0}
-            step={10_000_000}
-            value={filters.minWeeklyCoins}
-            onChange={(event) => update({ minWeeklyCoins: Number(event.target.value) })}
-          />
-          <span>{formatCoins(filters.minWeeklyCoins)}</span>
-        </label>
+        <CompactFilterField
+          label="Min sell"
+          value={filters.minSellPrice}
+          summary={formatCoins(filters.minSellPrice)}
+          onChange={(minSellPrice) => update({ minSellPrice })}
+        />
+        <CompactFilterField
+          label="Min profit"
+          value={filters.minSpread}
+          summary={formatCoins(filters.minSpread)}
+          onChange={(minSpread) => update({ minSpread })}
+        />
+        <CompactFilterField
+          label="Weekly coins"
+          value={filters.minWeeklyCoins}
+          summary={formatCoins(filters.minWeeklyCoins)}
+          onChange={(minWeeklyCoins) => update({ minWeeklyCoins })}
+        />
         <label>
           Max margin
           <input
@@ -81,27 +128,18 @@ export function FlipFilters({ filters, resultCount, totalCount, onChange }: Flip
           />
           <span>{filters.maxMarginPercent}% cap</span>
         </label>
-        <label>
-          Side flow
-          <input
-            type="number"
-            min={0}
-            step={500}
-            value={filters.minSideFlow}
-            onChange={(event) => update({ minSideFlow: Number(event.target.value) })}
-          />
-          <span>{filters.minSideFlow.toLocaleString()} each side</span>
-        </label>
-        <label>
-          Order depth
-          <input
-            type="number"
-            min={0}
-            value={filters.minOrderDepth}
-            onChange={(event) => update({ minOrderDepth: Number(event.target.value) })}
-          />
-          <span>{filters.minOrderDepth} each side</span>
-        </label>
+        <CompactFilterField
+          label="Side flow"
+          value={filters.minSideFlow}
+          summary={`${filters.minSideFlow.toLocaleString()} each side`}
+          onChange={(minSideFlow) => update({ minSideFlow })}
+        />
+        <CompactFilterField
+          label="Order depth"
+          value={filters.minOrderDepth}
+          summary={`${filters.minOrderDepth.toLocaleString()} each side`}
+          onChange={(minOrderDepth) => update({ minOrderDepth })}
+        />
         <label>
           Balance
           <input
@@ -114,16 +152,13 @@ export function FlipFilters({ filters, resultCount, totalCount, onChange }: Flip
           />
           <span>{Math.round(filters.minFlowBalance * 100)}% min</span>
         </label>
-        <label>
-          Max units
-          <input
-            type="number"
-            min={1}
-            value={filters.maxSuggestedUnits}
-            onChange={(event) => update({ maxSuggestedUnits: Number(event.target.value) })}
-          />
-          <span>{filters.maxSuggestedUnits} items</span>
-        </label>
+        <CompactFilterField
+          label="Max units"
+          value={filters.maxSuggestedUnits}
+          summary={`${filters.maxSuggestedUnits.toLocaleString()} items`}
+          allowZero={false}
+          onChange={(maxSuggestedUnits) => update({ maxSuggestedUnits })}
+        />
       </div>
     </div>
   );
