@@ -86,15 +86,17 @@ export const getMarketAlerts = (products: MarketItem[], tracked: TrackedBuy[]): 
   const profitAlerts = tracked.flatMap((buy) => {
     const market = products.find((item) => item.id === buy.item || item.name.toLowerCase() === buy.item.toLowerCase());
     if (!market) return [];
-    const target = buy.buyPrice * (1 + buy.targetPercent / 100);
-    if (market.sellPrice < target) return [];
+    const feePercent = buy.feePercent ?? 1.25;
+    const target = buy.targetSellPrice ?? buy.buyPrice * (1 + buy.targetPercent / 100);
+    const netSell = market.sellPrice * (1 - feePercent / 100);
+    if (netSell < target) return [];
     return [
       {
         id: `profit-${buy.id}`,
         item: cleanName(buy.item),
         type: "profit" as const,
         severity: "hot" as const,
-        message: `Profit zone hit: ${formatCoins(market.sellPrice)} current sell price`,
+        message: `Profit zone hit: ${formatCoins(netSell)} net sell after ${feePercent}% fees`,
       },
     ];
   });

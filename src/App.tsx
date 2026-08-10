@@ -66,6 +66,9 @@ export default function App() {
         quantity,
         buyPrice: selected.buyPrice,
         targetPercent,
+        feePercent: 1.25,
+        targetSellPrice: selected.buyPrice * (1 + targetPercent / 100),
+        status: "watching",
         boughtAt: Date.now(),
       },
       ...current,
@@ -110,6 +113,11 @@ export default function App() {
           buys={tracked}
           products={products}
           onRemove={(id) => setTracked((currentBuys) => currentBuys.filter((item) => item.id !== id))}
+          onUpdate={(id, updates) =>
+            setTracked((currentBuys) =>
+              currentBuys.map((item) => (item.id === id ? { ...item, ...updates } : item)),
+            )
+          }
         />
       </section>
     </main>

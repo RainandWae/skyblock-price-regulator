@@ -39,6 +39,9 @@ export type TrackedBuy = {
   quantity: number;
   buyPrice: number;
   targetPercent: number;
+  feePercent: number;
+  targetSellPrice: number;
+  status: "watching" | "profitable" | "sold";
   boughtAt: number;
 };
 
