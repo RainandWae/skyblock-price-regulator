@@ -40,9 +40,12 @@ type Auction = {
   end: number;
 };
 
-type BazaarSnapshot = {
+type BazaarHistoryPoint = {
   at: number;
-  products: Record<string, BazaarProduct>;
+  buyPrice: number;
+  sellPrice: number;
+  buyVolume: number;
+  sellVolume: number;
 };
 
 type TrackedBuy = {
@@ -65,7 +68,6 @@ type Alert = {
 
 const BAZAAR_URL = "/api/bazaar";
 const AUCTIONS_URL = "/api/auctions?page=0";
-const HISTORY_KEY = "sbr:bazaar-history";
 const TRACKED_KEY = "sbr:tracked-buys";
 
 const formatCoins = (value: number) =>
@@ -119,7 +121,7 @@ function MiniChart({ points, tone }: { points: number[]; tone: "green" | "red" |
 export default function App() {
   const [bazaar, setBazaar] = useState<Record<string, BazaarProduct>>({});
   const [auctions, setAuctions] = useState<Auction[]>([]);
-  const [history, setHistory] = useState<BazaarSnapshot[]>(() => loadJson(HISTORY_KEY, []));
+  const [historyPoints, setHistoryPoints] = useState<BazaarHistoryPoint[]>([]);
   const [tracked, setTracked] = useState<TrackedBuy[]>(() => loadJson(TRACKED_KEY, []));
   const [query, setQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState("BOOSTER_COOKIE");
@@ -136,14 +138,10 @@ export default function App() {
     const bazaarData = await bazaarResponse.json();
     const auctionData = await auctionResponse.json();
     const products = bazaarData.products as Record<string, BazaarProduct>;
-    const snapshot = { at: Date.now(), products };
-    const nextHistory = [...history, snapshot].slice(-120);
     setBazaar(products);
     setAuctions((auctionData.auctions as Auction[]).filter((auction) => auction.bin).slice(0, 500));
-    setHistory(nextHistory);
     setLastUpdated(Date.now());
     setStatus("Live");
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(nextHistory));
   };
 
   useEffect(() => {
@@ -153,6 +151,15 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(TRACKED_KEY, JSON.stringify(tracked));
   }, [tracked]);
+
+  useEffect(() => {
+    if (!selectedItem) return;
+
+    fetch(`/api/history/${encodeURIComponent(selectedItem)}`)
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("History request failed"))))
+      .then((data) => setHistoryPoints(data.points ?? []))
+      .catch(() => setHistoryPoints([]));
+  }, [selectedItem, lastUpdated]);
 
   const products = useMemo(
     () =>
@@ -178,9 +185,7 @@ export default function App() {
 
   const filtered = products.filter((item) => `${item.name} ${item.id}`.toLowerCase().includes(query.toLowerCase()));
   const selected = products.find((item) => item.id === selectedItem) ?? filtered[0] ?? products[0];
-  const selectedHistory = history
-    .map((snapshot) => snapshot.products[selected?.id ?? ""]?.quick_status?.buyPrice)
-    .filter((value): value is number => Number.isFinite(value));
+  const selectedHistory = historyPoints.map((point) => point.buyPrice).filter((value) => Number.isFinite(value));
 
   const auctionGroups = useMemo(() => {
     const groups = new Map<string, Auction[]>();
