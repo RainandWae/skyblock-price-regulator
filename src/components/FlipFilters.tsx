@@ -71,6 +71,17 @@ export function FlipFilters({ filters, resultCount, totalCount, onChange }: Flip
           <span>{formatCoins(filters.minWeeklyCoins)}</span>
         </label>
         <label>
+          Max margin
+          <input
+            type="number"
+            min={1}
+            step={5}
+            value={filters.maxMarginPercent}
+            onChange={(event) => update({ maxMarginPercent: Number(event.target.value) })}
+          />
+          <span>{filters.maxMarginPercent}% cap</span>
+        </label>
+        <label>
           Side flow
           <input
             type="number"
@@ -90,6 +101,18 @@ export function FlipFilters({ filters, resultCount, totalCount, onChange }: Flip
             onChange={(event) => update({ minOrderDepth: Number(event.target.value) })}
           />
           <span>{filters.minOrderDepth} each side</span>
+        </label>
+        <label>
+          Balance
+          <input
+            type="number"
+            min={0}
+            max={1}
+            step={0.05}
+            value={filters.minFlowBalance}
+            onChange={(event) => update({ minFlowBalance: Number(event.target.value) })}
+          />
+          <span>{Math.round(filters.minFlowBalance * 100)}% min</span>
         </label>
         <label>
           Max units

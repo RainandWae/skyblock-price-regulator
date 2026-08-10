@@ -60,6 +60,7 @@ export type MarketItem = {
   buyMovingWeek: number;
   sellMovingWeek: number;
   sideFlow: number;
+  flowBalance: number;
   weeklyCoins: number;
   spread: number;
   spreadPercent: number;
@@ -67,6 +68,7 @@ export type MarketItem = {
   orderFlipPercent: number;
   practicalScore: number;
   flowScore: number;
+  queueHealthScore: number;
   suggestedUnits: number;
   suggestedProfit: number;
   orders: number;
@@ -97,8 +99,10 @@ export type FlipFilters = {
   preset: FlipPreset;
   minSellPrice: number;
   minSpread: number;
+  maxMarginPercent: number;
   minWeeklyCoins: number;
   minSideFlow: number;
+  minFlowBalance: number;
   minOrderDepth: number;
   maxSuggestedUnits: number;
 };
