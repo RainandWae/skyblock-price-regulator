@@ -81,8 +81,11 @@ export type AuctionSignal = {
   name: string;
   count: number;
   lowest: number;
+  secondLowest: number;
   median: number;
   gap: number;
+  discountPercent: number;
+  score: number;
 };
 
 export type MarketAlert = {
