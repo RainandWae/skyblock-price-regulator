@@ -1,10 +1,12 @@
-import { CheckCircle2, Clock3, History } from "lucide-react";
+import { BellRing, CheckCircle2, Clock3, History } from "lucide-react";
 import type { MarketItem, TrackedBuy } from "../types/market";
 import { cleanName, formatCoins } from "../lib/format";
 
 type TrackedBuysProps = {
   buys: TrackedBuy[];
   products: MarketItem[];
+  notificationPermission: NotificationPermission;
+  onEnableNotifications: () => void;
   onRemove: (id: string) => void;
   onUpdate: (id: string, updates: Partial<TrackedBuy>) => void;
 };
@@ -23,12 +25,36 @@ const getBuyMetrics = (buy: TrackedBuy, products: MarketItem[]) => {
   return { currentSell, netSell, grossProfit, netProfit, roi, targetSellPrice, feePercent, status };
 };
 
-export function TrackedBuys({ buys, products, onRemove, onUpdate }: TrackedBuysProps) {
+export function TrackedBuys({
+  buys,
+  products,
+  notificationPermission,
+  onEnableNotifications,
+  onRemove,
+  onUpdate,
+}: TrackedBuysProps) {
   return (
     <div className="panel">
       <div className="panelHeader compact">
         <h3>Tracked Buys</h3>
-        <History size={18} />
+        <div className="trackedHeaderActions">
+          <button
+            className={notificationPermission === "granted" ? "enabled" : ""}
+            disabled={notificationPermission === "denied"}
+            onClick={onEnableNotifications}
+            title={
+              notificationPermission === "granted"
+                ? "Browser notifications enabled"
+                : notificationPermission === "denied"
+                  ? "Browser notifications blocked"
+                  : "Enable browser notifications"
+            }
+          >
+            <BellRing size={15} />
+            {notificationPermission === "granted" ? "notify on" : "notify"}
+          </button>
+          <History size={18} />
+        </div>
       </div>
       <div className="trackedList">
         {buys.length ? (

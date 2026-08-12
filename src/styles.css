@@ -390,6 +390,37 @@ input:focus-visible {
   min-height: 62px;
 }
 
+.trackedHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trackedHeaderActions button {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-sunken);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.74rem;
+}
+
+.trackedHeaderActions button.enabled {
+  border-color: rgba(59, 165, 93, 0.44);
+  background: rgba(59, 165, 93, 0.1);
+  color: var(--text);
+}
+
+.trackedHeaderActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .searchBox {
   min-width: min(320px, 44vw);
   display: flex;
