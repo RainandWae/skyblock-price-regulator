@@ -73,21 +73,39 @@ export const toMarketItems = (bazaar: Record<string, BazaarProduct>): MarketItem
 
 export const getAuctionSignals = (auctions: Auction[], settings?: Pick<MarketSettings, "ignoreAuctionBooks">): AuctionSignal[] => {
   const groups = new Map<string, Auction[]>();
+  const ignoredNamePatterns = [
+    /enchanted book/i,
+    /\brune\b/i,
+    /\bskin\b/i,
+    /cake soul/i,
+    /furniture/i,
+    /new year cake/i,
+  ];
+
   for (const auction of auctions) {
     const key = auction.item_name.replace(/§./g, "");
-    if (settings?.ignoreAuctionBooks && /enchanted book/i.test(key)) continue;
+    const shouldIgnoreBook = settings?.ignoreAuctionBooks && /enchanted book/i.test(key);
+    const shouldIgnoreNoise = ignoredNamePatterns.slice(1).some((pattern) => pattern.test(key));
+    if (!auction.bin || shouldIgnoreBook || shouldIgnoreNoise) continue;
+    if (auction.starting_bid < 100_000) continue;
     groups.set(key, [...(groups.get(key) ?? []), auction]);
   }
 
   return [...groups.entries()]
     .map(([name, list]) => {
-      const sorted = list.sort((a, b) => a.starting_bid - b.starting_bid);
+      const sorted = [...list].sort((a, b) => a.starting_bid - b.starting_bid);
       const lowest = sorted[0]?.starting_bid ?? 0;
+      const secondLowest = sorted[1]?.starting_bid ?? lowest;
       const median = sorted[Math.floor(sorted.length / 2)]?.starting_bid ?? lowest;
-      return { name, count: list.length, lowest, median, gap: median - lowest };
+      const gap = median - lowest;
+      const discountPercent = median ? (gap / median) * 100 : 0;
+      const undercutRisk = secondLowest > lowest ? Math.min((secondLowest - lowest) / Math.max(gap, 1), 1) : 0.15;
+      const liquidityScore = Math.log10(list.length + 1);
+      const score = gap * Math.max(discountPercent, 0) * liquidityScore * undercutRisk;
+      return { name, count: list.length, lowest, secondLowest, median, gap, discountPercent, score };
     })
-    .filter((item) => item.count >= 3 && item.gap > 0)
-    .sort((a, b) => b.gap - a.gap)
+    .filter((item) => item.count >= 4 && item.gap >= 50_000 && item.discountPercent >= 6)
+    .sort((a, b) => b.score - a.score)
     .slice(0, 8);
 };
 
