@@ -18,11 +18,13 @@ export function AuctionScanner({ signals }: AuctionScannerProps) {
           <div className="auctionItem" key={item.name}>
             <div>
               <strong>{item.name}</strong>
-              <span>{item.count} active BINs</span>
+              <span>
+                {item.count} active BINs - {item.discountPercent.toFixed(1)}% below median
+              </span>
             </div>
             <div>
               <b>{formatCoins(item.lowest)}</b>
-              <span>{formatCoins(item.gap)} under median</span>
+              <span>{formatCoins(item.gap)} gap - next {formatCoins(item.secondLowest)}</span>
             </div>
           </div>
         ))}
