@@ -109,3 +109,12 @@ export type FlipFilters = {
   minOrderDepth: number;
   maxSuggestedUnits: number;
 };
+
+export type MarketSettings = {
+  refreshIntervalSeconds: number;
+  defaultFeePercent: number;
+  defaultTargetPercent: number;
+  minProfit: number;
+  ignoreHighLevelEnchantments: boolean;
+  ignoreAuctionBooks: boolean;
+};
