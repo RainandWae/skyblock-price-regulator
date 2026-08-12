@@ -15,12 +15,21 @@ const getBuyMetrics = (buy: TrackedBuy, products: MarketItem[]) => {
   const targetSellPrice = buy.targetSellPrice ?? buy.buyPrice * (1 + buy.targetPercent / 100);
   const currentSell = market?.sellOrderPrice ?? buy.buyPrice;
   const netSell = currentSell * (1 - feePercent / 100);
+  const totalCost = buy.buyPrice * buy.quantity;
+  const netReturn = netSell * buy.quantity;
   const grossProfit = (currentSell - buy.buyPrice) * buy.quantity;
   const netProfit = (netSell - buy.buyPrice) * buy.quantity;
   const roi = buy.buyPrice ? ((netSell - buy.buyPrice) / buy.buyPrice) * 100 : 0;
-  const status = buy.status === "sold" ? "sold" : netSell >= targetSellPrice ? "profitable" : "watching";
+  const targetGap = Math.max(0, targetSellPrice - netSell);
+  const status = buy.status === "sold" ? "sold" : netSell >= targetSellPrice ? "ready" : "watching";
 
-  return { currentSell, netSell, grossProfit, netProfit, roi, targetSellPrice, feePercent, status };
+  return { currentSell, netSell, totalCost, netReturn, grossProfit, netProfit, roi, targetSellPrice, targetGap, feePercent, status };
+};
+
+const getStatusLabel = (status: string) => {
+  if (status === "ready") return "ready to sell";
+  if (status === "sold") return "sold";
+  return "watching";
 };
 
 export function TrackedBuys({ buys, products, onRemove, onUpdate }: TrackedBuysProps) {
@@ -36,11 +45,11 @@ export function TrackedBuys({ buys, products, onRemove, onUpdate }: TrackedBuysP
             const metrics = getBuyMetrics(buy, products);
             return (
               <div className={`trackedItem ${metrics.status}`} key={buy.id}>
-                {metrics.status === "profitable" ? <CheckCircle2 size={16} /> : <Clock3 size={16} />}
+                {metrics.status === "ready" ? <CheckCircle2 size={16} /> : <Clock3 size={16} />}
                 <div className="trackedBody">
                   <div className="trackedTitle">
                     <strong>{cleanName(buy.item)}</strong>
-                    <span>{metrics.status}</span>
+                    <span>{getStatusLabel(metrics.status)}</span>
                   </div>
                   <div className="trackedInputs">
                     <label>
@@ -87,10 +96,15 @@ export function TrackedBuys({ buys, products, onRemove, onUpdate }: TrackedBuysP
                     </label>
                   </div>
                   <div className="trackedMetrics">
-                    <span>Current {formatCoins(metrics.currentSell)}</span>
-                    <span>Net {formatCoins(metrics.netSell)}</span>
+                    <span>Sell order {formatCoins(metrics.currentSell)}</span>
+                    <span>Net each {formatCoins(metrics.netSell)}</span>
+                    <span>Target {formatCoins(metrics.targetSellPrice)}</span>
+                    <span>Gap {formatCoins(metrics.targetGap)}</span>
+                    <span>Cost {formatCoins(metrics.totalCost)}</span>
+                    <span>Net return {formatCoins(metrics.netReturn)}</span>
+                    <span>Fees {metrics.feePercent.toFixed(2)}%</span>
                     <span className={metrics.netProfit >= 0 ? "positive" : "negative"}>
-                      P/L {formatCoins(metrics.netProfit)}
+                      Net P/L {formatCoins(metrics.netProfit)}
                     </span>
                     <span>ROI {metrics.roi.toFixed(1)}%</span>
                   </div>

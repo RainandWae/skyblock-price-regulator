@@ -839,7 +839,7 @@ input:focus-visible {
   align-items: start;
 }
 
-.trackedItem.profitable {
+.trackedItem.ready {
   border-color: rgba(59, 165, 93, 0.5);
   background: rgba(59, 165, 93, 0.1);
 }
@@ -901,6 +901,10 @@ input:focus-visible {
 }
 
 .trackedMetrics span {
+  padding: 4px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 6px;
+  background: rgba(18, 19, 23, 0.36);
   color: var(--muted);
 }
 
