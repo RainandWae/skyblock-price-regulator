@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 
 const port = Number(process.env.PORT ?? 8787);
+const host = process.env.HOST ?? "127.0.0.1";
 const root = process.cwd();
 const distDir = join(root, "dist");
 const dataDir = join(root, "data");
@@ -174,6 +175,6 @@ createServer(async (request, response) => {
       error: error instanceof Error ? error.message : "Unknown server error",
     });
   }
-}).listen(port, "127.0.0.1", () => {
-  console.log(`API server running at http://127.0.0.1:${port}`);
+}).listen(port, host, () => {
+  console.log(`API server running at http://${host}:${port}`);
 });

@@ -62,6 +62,10 @@ Preview the production build:
 npm run preview
 ```
 
+## Public Deployment
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for the recommended public deployment path.
+
 ## Local Data
 
 The backend stores Bazaar history snapshots in:
