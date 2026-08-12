@@ -565,6 +565,38 @@ input:focus-visible {
   margin-bottom: 10px;
 }
 
+.chartControls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.chartRange {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 7px;
+  background: rgba(18, 19, 23, 0.42);
+}
+
+.chartRange button {
+  min-height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.72rem;
+}
+
+.chartRange button.active {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
 .chartToolbar > div:first-child,
 .chartFooter span {
   display: grid;
@@ -617,6 +649,7 @@ input:focus-visible {
 }
 
 .chartCanvas {
+  position: relative;
   width: 100%;
   aspect-ratio: 2.8 / 1;
   min-height: 330px;
@@ -646,6 +679,12 @@ input:focus-visible {
   font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
 }
 
+.timeLabel {
+  fill: var(--subtle);
+  font-size: 2.1px;
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+}
+
 .chartLine {
   fill: none;
   stroke-width: 1.35;
@@ -661,9 +700,49 @@ input:focus-visible {
   stroke: #ff5c66;
 }
 
+.hoverLine {
+  stroke: rgba(255, 255, 255, 0.32);
+  stroke-width: 0.22;
+  stroke-dasharray: 1.2 1.2;
+}
+
+.hoverDot {
+  stroke: #ffffff;
+  stroke-width: 0.35;
+}
+
+.hoverDot.buy {
+  fill: #57f287;
+}
+
+.hoverDot.sell {
+  fill: #ff5c66;
+}
+
+.chartTooltip {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: grid;
+  gap: 3px;
+  min-width: 132px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 7px;
+  background: rgba(24, 25, 31, 0.92);
+  color: var(--muted);
+  font-size: 0.74rem;
+  pointer-events: none;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.24);
+}
+
+.chartTooltip strong {
+  color: var(--text);
+}
+
 .chartFooter {
   margin-top: 10px;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   display: grid;
 }
 
@@ -1036,6 +1115,10 @@ input:focus-visible {
   }
 
   .chartLegend {
+    justify-content: flex-start;
+  }
+
+  .chartControls {
     justify-content: flex-start;
   }
 
