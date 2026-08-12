@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchItemHistory, fetchMarketData } from "./api/market";
 import { AlertsPanel } from "./components/AlertsPanel";
 import { AuctionScanner } from "./components/AuctionScanner";
@@ -28,6 +28,10 @@ export default function App() {
   const [filters, setFilters] = useState<FlipFiltersType>(() => getPresetFilters("balanced"));
   const [status, setStatus] = useState("Ready");
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(() =>
+    "Notification" in window ? Notification.permission : "denied",
+  );
+  const notifiedBuyIds = useRef(new Set<string>());
 
   const fetchMarket = useCallback(async () => {
     setStatus("Refreshing market data");
@@ -57,6 +61,16 @@ export default function App() {
       .catch(() => setHistoryPoints([]));
   }, [selectedItem, lastUpdated]);
 
+  const enableNotifications = async () => {
+    if (!("Notification" in window)) {
+      setNotificationPermission("denied");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+  };
+
   const products = useMemo(() => toMarketItems(bazaar), [bazaar]);
   const filtered = applyFlipFilters(products, filters).filter((item) =>
     `${item.name} ${item.id}`.toLowerCase().includes(query.toLowerCase()),
@@ -64,6 +78,30 @@ export default function App() {
   const selected = products.find((item) => item.id === selectedItem) ?? filtered[0] ?? products[0];
   const auctionSignals = useMemo(() => getAuctionSignals(auctions), [auctions]);
   const alerts = useMemo(() => getMarketAlerts(products, tracked, filtered), [products, tracked, filtered]);
+
+  useEffect(() => {
+    if (notificationPermission !== "granted") return;
+
+    for (const buy of tracked) {
+      const market = products.find((item) => item.id === buy.item);
+      const feePercent = buy.feePercent ?? 1.25;
+      const targetSellPrice = buy.targetSellPrice ?? buy.buyPrice * (1 + buy.targetPercent / 100);
+      const currentSell = market?.sellOrderPrice ?? 0;
+      const netSell = currentSell * (1 - feePercent / 100);
+      const isReady = buy.status !== "sold" && netSell >= targetSellPrice;
+
+      if (!isReady) {
+        notifiedBuyIds.current.delete(buy.id);
+        continue;
+      }
+
+      if (notifiedBuyIds.current.has(buy.id)) continue;
+      notifiedBuyIds.current.add(buy.id);
+      new Notification("SkyBlock flip ready", {
+        body: `${buy.item.replaceAll("_", " ")} is in profit range.`,
+      });
+    }
+  }, [notificationPermission, products, tracked]);
 
   const recordBuy = () => {
     if (!selected) return;
@@ -136,6 +174,8 @@ export default function App() {
         <TrackedBuys
           buys={tracked}
           products={products}
+          notificationPermission={notificationPermission}
+          onEnableNotifications={enableNotifications}
           onRemove={(id) => setTracked((currentBuys) => currentBuys.filter((item) => item.id !== id))}
           onUpdate={(id, updates) =>
             setTracked((currentBuys) =>
