@@ -7,6 +7,7 @@ type FlipFiltersProps = {
   filters: FlipFiltersType;
   resultCount: number;
   totalCount: number;
+  ignoreHighLevelEnchantments: boolean;
   onChange: (filters: FlipFiltersType) => void;
 };
 
@@ -76,7 +77,7 @@ function CompactFilterField({ label, value, summary, allowZero = true, onChange 
   );
 }
 
-export function FlipFilters({ filters, resultCount, totalCount, onChange }: FlipFiltersProps) {
+export function FlipFilters({ filters, resultCount, totalCount, ignoreHighLevelEnchantments, onChange }: FlipFiltersProps) {
   const update = (updates: Partial<FlipFiltersType>) => onChange({ ...filters, ...updates });
 
   return (
@@ -84,7 +85,7 @@ export function FlipFilters({ filters, resultCount, totalCount, onChange }: Flip
       <div className="filterSummary">
         <strong>{resultCount}</strong>
         <span>of {totalCount} Bazaar items match</span>
-        <span>Level 2+ enchants ignored</span>
+        <span>{ignoreHighLevelEnchantments ? "Level 2+ enchants ignored" : "All enchant levels included"}</span>
       </div>
       <div className="presetGroup" aria-label="Flip filter preset">
         {presets.map((preset) => (

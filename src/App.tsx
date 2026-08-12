@@ -6,15 +6,31 @@ import { BazaarTable } from "./components/BazaarTable";
 import { FlipFilters } from "./components/FlipFilters";
 import { HeroPanel } from "./components/HeroPanel";
 import { ItemDetail } from "./components/ItemDetail";
+import { SettingsPanel } from "./components/SettingsPanel";
 import { TopBar } from "./components/TopBar";
 import { TrackedBuys } from "./components/TrackedBuys";
 import { applyFlipFilters, getAuctionSignals, getMarketAlerts, getPresetFilters, toMarketItems } from "./lib/market";
 import { parseQuantityInput } from "./lib/quantity";
 import { loadJson } from "./lib/storage";
-import type { Auction, BazaarHistoryPoint, BazaarProduct, FlipFilters as FlipFiltersType, TrackedBuy } from "./types/market";
+import type {
+  Auction,
+  BazaarHistoryPoint,
+  BazaarProduct,
+  FlipFilters as FlipFiltersType,
+  MarketSettings,
+  TrackedBuy,
+} from "./types/market";
 
 const TRACKED_KEY = "sbr:tracked-buys";
-const MARKET_REFRESH_INTERVAL_MS = 60_000;
+const SETTINGS_KEY = "sbr:settings";
+const defaultSettings: MarketSettings = {
+  refreshIntervalSeconds: 60,
+  defaultFeePercent: 1.25,
+  defaultTargetPercent: 8,
+  minProfit: 0,
+  ignoreHighLevelEnchantments: true,
+  ignoreAuctionBooks: true,
+};
 
 export default function App() {
   const [bazaar, setBazaar] = useState<Record<string, BazaarProduct>>({});
@@ -24,7 +40,8 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState("BOOSTER_COOKIE");
   const [quantity, setQuantity] = useState("1");
-  const [targetPercent, setTargetPercent] = useState("8");
+  const [settings, setSettings] = useState<MarketSettings>(() => ({ ...defaultSettings, ...loadJson(SETTINGS_KEY, {}) }));
+  const [targetPercent, setTargetPercent] = useState(String(settings.defaultTargetPercent));
   const [filters, setFilters] = useState<FlipFiltersType>(() => getPresetFilters("balanced"));
   const [status, setStatus] = useState("Ready");
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
@@ -42,13 +59,17 @@ export default function App() {
     fetchMarket().catch((error) => setStatus(error.message));
     const intervalId = window.setInterval(() => {
       fetchMarket().catch((error) => setStatus(error.message));
-    }, MARKET_REFRESH_INTERVAL_MS);
+    }, settings.refreshIntervalSeconds * 1000);
     return () => window.clearInterval(intervalId);
-  }, [fetchMarket]);
+  }, [fetchMarket, settings.refreshIntervalSeconds]);
 
   useEffect(() => {
     localStorage.setItem(TRACKED_KEY, JSON.stringify(tracked));
   }, [tracked]);
+
+  useEffect(() => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  }, [settings]);
 
   useEffect(() => {
     if (!selectedItem) return;
@@ -58,11 +79,11 @@ export default function App() {
   }, [selectedItem, lastUpdated]);
 
   const products = useMemo(() => toMarketItems(bazaar), [bazaar]);
-  const filtered = applyFlipFilters(products, filters).filter((item) =>
+  const filtered = applyFlipFilters(products, filters, settings).filter((item) =>
     `${item.name} ${item.id}`.toLowerCase().includes(query.toLowerCase()),
   );
   const selected = products.find((item) => item.id === selectedItem) ?? filtered[0] ?? products[0];
-  const auctionSignals = useMemo(() => getAuctionSignals(auctions), [auctions]);
+  const auctionSignals = useMemo(() => getAuctionSignals(auctions, settings), [auctions, settings]);
   const alerts = useMemo(() => getMarketAlerts(products, tracked, filtered), [products, tracked, filtered]);
 
   const recordBuy = () => {
@@ -80,7 +101,7 @@ export default function App() {
         quantity: parsedQuantity,
         buyPrice: selected.buyOrderPrice,
         targetPercent: parsedTargetPercent,
-        feePercent: 1.25,
+        feePercent: settings.defaultFeePercent,
         targetSellPrice: selected.buyOrderPrice * (1 + parsedTargetPercent / 100),
         status: "watching",
         boughtAt: Date.now(),
@@ -124,11 +145,14 @@ export default function App() {
         filters={filters}
         resultCount={filtered.length}
         totalCount={products.length}
+        ignoreHighLevelEnchantments={settings.ignoreHighLevelEnchantments}
         onChange={(nextFilters) => {
           const presetChanged = nextFilters.preset !== filters.preset;
           setFilters(presetChanged ? getPresetFilters(nextFilters.preset) : nextFilters);
         }}
       />
+
+      <SettingsPanel settings={settings} onChange={setSettings} />
 
       <section className="lowerGrid">
         <AlertsPanel alerts={alerts} />

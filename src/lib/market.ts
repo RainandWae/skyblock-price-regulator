@@ -3,6 +3,7 @@ import type {
   AuctionSignal,
   BazaarProduct,
   FlipFilters,
+  MarketSettings,
   MarketAlert,
   MarketItem,
   TrackedBuy,
@@ -70,10 +71,11 @@ export const toMarketItems = (bazaar: Record<string, BazaarProduct>): MarketItem
     })
     .sort((a, b) => b.volume - a.volume);
 
-export const getAuctionSignals = (auctions: Auction[]): AuctionSignal[] => {
+export const getAuctionSignals = (auctions: Auction[], settings?: Pick<MarketSettings, "ignoreAuctionBooks">): AuctionSignal[] => {
   const groups = new Map<string, Auction[]>();
   for (const auction of auctions) {
     const key = auction.item_name.replace(/§./g, "");
+    if (settings?.ignoreAuctionBooks && /enchanted book/i.test(key)) continue;
     groups.set(key, [...(groups.get(key) ?? []), auction]);
   }
 
@@ -194,17 +196,23 @@ export const getPresetFilters = (preset: FlipFilters["preset"]): FlipFilters => 
   return presets[preset];
 };
 
-export const applyFlipFilters = (items: MarketItem[], filters: FlipFilters) =>
+export const applyFlipFilters = (
+  items: MarketItem[],
+  filters: FlipFilters,
+  settings?: Pick<MarketSettings, "ignoreHighLevelEnchantments" | "minProfit">,
+) =>
   items
     .filter((item) => {
+      const ignoresItem = settings?.ignoreHighLevelEnchantments !== false && item.isIgnoredEnchantment;
       const meetsPrice = item.buyOrderPrice >= filters.minSellPrice;
       const meetsSpread = item.spread >= filters.minSpread;
+      const meetsProfit = item.suggestedProfit >= (settings?.minProfit ?? 0);
       const meetsMargin = item.orderFlipPercent <= filters.maxMarginPercent;
       const meetsCoins = item.weeklyCoins >= filters.minWeeklyCoins;
       const meetsFlow = item.sideFlow >= filters.minSideFlow;
       const meetsBalance = item.flowBalance >= filters.minFlowBalance;
       const meetsDepth = item.orderDepth >= filters.minOrderDepth;
       const meetsUnits = item.suggestedUnits <= filters.maxSuggestedUnits;
-      return !item.isIgnoredEnchantment && meetsPrice && meetsSpread && meetsMargin && meetsCoins && meetsFlow && meetsBalance && meetsDepth && meetsUnits;
+      return !ignoresItem && meetsPrice && meetsSpread && meetsProfit && meetsMargin && meetsCoins && meetsFlow && meetsBalance && meetsDepth && meetsUnits;
     })
     .sort((a, b) => b.practicalScore - a.practicalScore);
