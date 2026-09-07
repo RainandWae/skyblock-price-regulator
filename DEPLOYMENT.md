@@ -1,6 +1,6 @@
 # Public Deployment Plan
 
-This app is currently a Vite frontend served by a small Node backend. The backend also proxies Hypixel SkyBlock market data and stores local Bazaar history snapshots in `data/bazaar-history.json`.
+This app is currently a Vite frontend served by a small Node backend. The backend also proxies Hypixel SkyBlock market data and stores Bazaar history in a SQLite database at `data/history.db`.
 
 ## 1. Hosting Target
 
@@ -20,6 +20,22 @@ Build command: npm install && npm run build
 Start command: npm start
 Health check path: /api/health
 ```
+
+### Persistent disk is required
+
+Render web services have an ephemeral filesystem by default, so `data/history.db`
+is wiped on every deploy and restart. Free web services cannot attach a disk at
+all, so history will never accumulate on the free tier.
+
+To keep history, use a paid instance with a disk attached:
+
+```text
+Mount path: /opt/render/project/src/data
+Size: 1 GB
+```
+
+Disks are billed per GB per month. Steady-state usage for this app is a few
+hundred MB at most, because retention is tiered (see below).
 
 Production environment variables:
 
@@ -67,11 +83,15 @@ Current behavior:
 
 ```text
 Market data comes from Hypixel
-Bazaar history is saved to data/bazaar-history.json
+Bazaar history is saved to data/history.db (SQLite)
 Tracked buys are saved in the user's browser
 ```
 
-Use Neon only if you want production data to be shared and persistent across deploys, such as:
+History is bounded by tiered retention: full resolution for 48 hours, one sample
+per 15 minutes for 30 days, then dropped. Unchanged products are not re-recorded.
+A Render persistent disk is enough for this; Neon is not needed for size reasons.
+
+Use Neon only if you want production data to be *shared between users*, such as:
 
 ```text
 Shared Bazaar history for all users
