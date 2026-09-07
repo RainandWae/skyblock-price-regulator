@@ -15,7 +15,7 @@ A local Hypixel SkyBlock market dashboard for watching Bazaar order flips, spott
 - Quantity shorthand support, such as `10k`, `1m`, `24b`, and `2t`
 - Input validation for empty values, leading zeroes, and invalid numbers
 - Live data freshness display with automatic market refresh every 60 seconds
-- Local Bazaar history snapshots saved for charting
+- Local Bazaar history saved to SQLite for charting, with tiered retention
 - Device-local tracked buys saved in the browser
 
 ## How To Run
@@ -68,13 +68,35 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for the recommended public deployment path.
 
 ## Local Data
 
-The backend stores Bazaar history snapshots in:
+The backend stores Bazaar history in a SQLite database:
 
 ```text
-data/bazaar-history.json
+data/history.db
 ```
 
-That folder is ignored by Git because it is local runtime data.
+That folder is ignored by Git because it is local runtime data. The database
+uses Node's built-in `node:sqlite`, so there is nothing extra to install.
+
+Retention is tiered so the database stays a bounded size:
+
+```text
+Full resolution   last 48 hours
+One per 15 min    last 30 days
+Dropped           older than 30 days
+```
+
+Unchanged products are skipped between snapshots, which removes about half of
+all rows.
+
+If you have an older `data/bazaar-history.json` from a previous version, import
+it once:
+
+```bash
+npm run migrate:history
+```
+
+That prints how many points it kept and leaves the old JSON file in place so you
+can delete it yourself once you are happy with the result.
 
 Tracked buys are saved in your browser storage, so they are local to that browser/device.
 

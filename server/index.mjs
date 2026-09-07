@@ -1,13 +1,14 @@
 import { createServer } from "node:http";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
+import { createHistoryStore } from "./history.mjs";
 
 const port = Number(process.env.PORT ?? 8787);
 const host = process.env.HOST ?? "127.0.0.1";
 const root = process.cwd();
 const distDir = join(root, "dist");
 const dataDir = join(root, "data");
-const bazaarHistoryFile = join(dataDir, "bazaar-history.json");
+const history = createHistoryStore(dataDir);
 const cache = new Map();
 
 const hypixel = {
@@ -46,62 +47,6 @@ const fetchCached = async (key, url, ttlMs) => {
   const cachedAt = Date.now();
   cache.set(key, { cachedAt, body });
   return { ...body, cache: { cached: false, cachedAt } };
-};
-
-const readBazaarHistory = async () => {
-  try {
-    return JSON.parse(await readFile(bazaarHistoryFile, "utf8"));
-  } catch {
-    return [];
-  }
-};
-
-const writeBazaarHistory = async (history) => {
-  await mkdir(dataDir, { recursive: true });
-  await writeFile(bazaarHistoryFile, JSON.stringify(history, null, 2));
-};
-
-const compactBazaarSnapshot = (body) => ({
-  at: body.lastUpdated ?? Date.now(),
-  products: Object.fromEntries(
-    Object.entries(body.products ?? {}).map(([id, product]) => {
-      const quick = product.quick_status ?? {};
-      return [
-        id,
-        {
-          buyPrice: quick.buyPrice ?? 0,
-          sellPrice: quick.sellPrice ?? 0,
-          buyVolume: quick.buyVolume ?? 0,
-          sellVolume: quick.sellVolume ?? 0,
-          buyMovingWeek: quick.buyMovingWeek ?? 0,
-          sellMovingWeek: quick.sellMovingWeek ?? 0,
-        },
-      ];
-    }),
-  ),
-});
-
-const recordBazaarSnapshot = async (body) => {
-  if (!body?.success || !body.products) return;
-  const nextSnapshot = compactBazaarSnapshot(body);
-  const history = await readBazaarHistory();
-  const previous = history.at(-1);
-
-  if (previous?.at === nextSnapshot.at) return;
-
-  history.push(nextSnapshot);
-  await writeBazaarHistory(history.slice(-2_880));
-};
-
-const getProductHistory = async (productId) => {
-  const history = await readBazaarHistory();
-  return history
-    .map((snapshot) => {
-      const product = snapshot.products?.[productId];
-      if (!product) return null;
-      return { at: snapshot.at, ...product };
-    })
-    .filter(Boolean);
 };
 
 const serveStatic = async (requestUrl, response) => {
@@ -143,7 +88,7 @@ createServer(async (request, response) => {
 
     if (url.pathname === "/api/bazaar") {
       const body = await fetchCached("bazaar", hypixel.bazaar, 60_000);
-      await recordBazaarSnapshot(body);
+      history.recordSnapshot(body);
       sendJson(response, 200, body);
       return;
     }
@@ -163,7 +108,7 @@ createServer(async (request, response) => {
       sendJson(response, 200, {
         success: true,
         productId,
-        points: await getProductHistory(productId),
+        points: history.getProductHistory(productId),
       });
       return;
     }
