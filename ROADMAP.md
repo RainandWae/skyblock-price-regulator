@@ -15,25 +15,32 @@ then launch. The first three are days of work. Accounts is the real project.
 
 ## 1. Bandwidth
 
-The server sends the full Hypixel bazaar payload to every client every 60
-seconds, uncompressed.
+Done, except for the snapshot write. The client polls both `/api/bazaar` and
+`/api/auctions` every 60 seconds, and both used to ship Hypixel's full payload
+uncompressed. Measured on the wire:
 
-| | per response | per user/day | 500 users/day |
-|---|---|---|---|
-| today | 3.64 MB | 5.25 GB | 2.6 TB |
-| gzip only | 0.50 MB | 0.72 GB | 360 GB |
-| trimmed + gzip | 0.05 MB | 0.07 GB | 35 GB |
+| endpoint | before | after (brotli) |
+|---|---|---|
+| `/api/bazaar` | 3.62 MB | 58 KB |
+| `/api/auctions` | 2.36 MB | 7.6 KB |
+| per refresh | 5.98 MB | 66 KB |
+| 500 users/day | 4.31 TB | 48 GB |
 
-`fe/src/lib/market.ts` reads six numbers per product. The payload carries the full
-30-deep order book for all 2,197 products. Trimming server-side to the fields the
-client uses is a 75x reduction.
+The backend now sends only the fields the client reads, resolves Hypixel's
+inverted `buyPrice`/`sellPrice` naming at the boundary, and filters auctions to
+BIN listings. Bodies are serialized and compressed once per upstream refresh and
+reused across every client, with ETag revalidation so an unchanged payload costs
+a 304 instead of a body.
 
-- [ ] Trim the `/api/bazaar` response to the fields `toMarketItems` reads
-- [ ] Add gzip/brotli compression to API and static responses
+- [x] Trim the `/api/bazaar` response to the fields `toMarketItems` reads
+- [x] Trim `/api/auctions` to BIN listings and the two fields used
+- [x] Add gzip/brotli compression to API and static responses
+- [x] ETag revalidation on both endpoints
 - [ ] Move `history.recordSnapshot()` off the request path onto a timer. It
       writes ~2,200 SQLite rows synchronously while a request waits
       (`be/src/index.mjs`)
-- [ ] Re-measure egress after the change and model cost at target user count
+- [x] Re-measure egress after the change. Still to do: model cost at target
+      user count
 
 ## 2. There is no concept of a user
 
@@ -84,10 +91,10 @@ that never happened.
       forever. `?page=99999` in a loop is trivial memory exhaustion
       (`be/src/index.mjs`)
 - [ ] Per-IP rate limiting
-- [ ] Fix the static fallback returning `index.html` with HTTP 200 for any
-      missing path. Broken asset URLs currently return HTML under a JS content
-      type, and real 404s are invisible
-- [ ] Fix the catch-all error handler. It calls `sendJson` unconditionally, so if
+- [x] Fix the static fallback returning `index.html` with HTTP 200 for any
+      missing path. Paths under `/assets/` now 404; everything else still falls
+      back to the SPA shell
+- [x] Fix the catch-all error handler. It calls `sendJson` unconditionally, so if
       `serveStatic` already wrote headers it throws inside the handler and kills
       the response
 - [ ] Security headers: CSP, HSTS, `X-Content-Type-Options`, frame options

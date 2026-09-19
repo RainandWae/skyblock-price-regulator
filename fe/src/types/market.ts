@@ -1,27 +1,21 @@
-export type BazaarProduct = {
-  product_id: string;
-  quick_status: {
-    productId: string;
-    sellPrice: number;
-    sellVolume: number;
-    sellMovingWeek: number;
-    sellOrders: number;
-    buyPrice: number;
-    buyVolume: number;
-    buyMovingWeek: number;
-    buyOrders: number;
-  };
+/**
+ * What /api/bazaar returns. The backend trims Hypixel's payload to these fields
+ * and resolves its inverted naming, so buyOrderPrice really is what a buy order
+ * costs you.
+ */
+export type BazaarQuote = {
+  buyOrderPrice: number;
+  sellOrderPrice: number;
+  buyMovingWeek: number;
+  sellMovingWeek: number;
+  buyOrders: number;
+  sellOrders: number;
 };
 
+/** What /api/auctions returns: BIN listings only, colour codes already stripped. */
 export type Auction = {
-  uuid: string;
-  item_name: string;
-  tier: string;
-  category: string;
-  starting_bid: number;
-  highest_bid_amount: number;
-  bin?: boolean;
-  end: number;
+  name: string;
+  price: number;
 };
 
 export type BazaarHistoryPoint = {

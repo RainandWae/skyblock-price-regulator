@@ -1,7 +1,9 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
+import { encodeBuffer, pickEncoding } from "./compress.mjs";
 import { createHistoryStore } from "./history.mjs";
+import { createPayloadCache, trimAuctions, trimBazaar } from "./payloads.mjs";
 
 const port = Number(process.env.PORT ?? 8787);
 const host = process.env.HOST ?? "127.0.0.1";
@@ -13,6 +15,10 @@ const distDir = process.env.CLIENT_DIST ?? join(root, "fe", "dist");
 const dataDir = process.env.DATA_DIR ?? join(root, "data");
 const history = createHistoryStore(dataDir);
 const cache = new Map();
+const staticCache = new Map();
+
+const bazaarPayload = createPayloadCache(trimBazaar);
+const auctionPayload = createPayloadCache(trimAuctions);
 
 const hypixel = {
   bazaar: "https://api.hypixel.net/v2/skyblock/bazaar",
@@ -35,11 +41,42 @@ const sendJson = (response, status, body) => {
   response.end(JSON.stringify(body));
 };
 
+/**
+ * Sends a body from encodeBody/encodeBuffer, negotiating compression and
+ * answering 304 when the client already holds this exact payload.
+ */
+const sendEncoded = (request, response, encoded, { contentType, cacheControl }) => {
+  if (request.headers["if-none-match"] === encoded.etag) {
+    response.writeHead(304, { ETag: encoded.etag, Vary: "Accept-Encoding" });
+    response.end();
+    return;
+  }
+
+  const { body, encoding } = encoded.variant(pickEncoding(request.headers["accept-encoding"]));
+  const headers = {
+    "Content-Type": contentType,
+    "Content-Length": body.length,
+    "Cache-Control": cacheControl,
+    ETag: encoded.etag,
+    Vary: "Accept-Encoding",
+  };
+  if (encoding) headers["Content-Encoding"] = encoding;
+
+  response.writeHead(200, headers);
+  response.end(request.method === "HEAD" ? undefined : body);
+};
+
+const sendApi = (request, response, encoded) =>
+  sendEncoded(request, response, encoded, {
+    contentType: "application/json; charset=utf-8",
+    // Clients poll on their own schedule; the upstream TTL is what actually
+    // paces refreshes, so let a proxy hold this only as long as that.
+    cacheControl: "public, max-age=30, must-revalidate",
+  });
+
 const fetchCached = async (key, url, ttlMs) => {
   const cached = cache.get(key);
-  if (cached && Date.now() - cached.cachedAt < ttlMs) {
-    return { ...cached.body, cache: { cached: true, cachedAt: cached.cachedAt } };
-  }
+  if (cached && Date.now() - cached.cachedAt < ttlMs) return cached.body;
 
   const upstream = await fetch(url);
   if (!upstream.ok) {
@@ -47,13 +84,12 @@ const fetchCached = async (key, url, ttlMs) => {
   }
 
   const body = await upstream.json();
-  const cachedAt = Date.now();
-  cache.set(key, { cachedAt, body });
-  return { ...body, cache: { cached: false, cachedAt } };
+  cache.set(key, { cachedAt: Date.now(), body });
+  return body;
 };
 
-const serveStatic = async (requestUrl, response) => {
-  const url = new URL(requestUrl, `http://127.0.0.1:${port}`);
+const serveStatic = async (request, response) => {
+  const url = new URL(request.url ?? "/", `http://127.0.0.1:${port}`);
   const requested = url.pathname === "/" ? "/index.html" : url.pathname;
   const filePath = normalize(join(distDir, requested));
 
@@ -63,21 +99,39 @@ const serveStatic = async (requestUrl, response) => {
     return;
   }
 
-  try {
-    const content = await readFile(filePath);
-    response.writeHead(200, {
-      "Content-Type": contentTypes[extname(filePath)] ?? "application/octet-stream",
-      "Cache-Control": "public, max-age=60",
-    });
-    response.end(content);
-  } catch {
-    const fallback = await readFile(join(distDir, "index.html"));
-    response.writeHead(200, {
-      "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "no-store",
-    });
-    response.end(fallback);
+  let path = filePath;
+  let cached = staticCache.get(path);
+
+  if (!cached) {
+    let content;
+    try {
+      content = await readFile(path);
+    } catch {
+      // The SPA owns client-side routing, so an unknown path falls back to the
+      // shell. Anything under /assets is a real file request, and a miss there
+      // is a broken build rather than a route.
+      if (requested.startsWith("/assets/")) {
+        response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+        response.end("Not found");
+        return;
+      }
+      path = join(distDir, "index.html");
+      cached = staticCache.get(path);
+      if (!cached) content = await readFile(path);
+    }
+
+    if (!cached) {
+      cached = encodeBuffer(content);
+      staticCache.set(path, cached);
+    }
   }
+
+  sendEncoded(request, response, cached, {
+    contentType: contentTypes[extname(path)] ?? "application/octet-stream",
+    // Vite fingerprints asset filenames, so those are immutable. The shell is
+    // not, and must be revalidated or clients pin themselves to an old build.
+    cacheControl: path.includes("assets") ? "public, max-age=31536000, immutable" : "no-cache",
+  });
 };
 
 createServer(async (request, response) => {
@@ -90,19 +144,20 @@ createServer(async (request, response) => {
     }
 
     if (url.pathname === "/api/bazaar") {
-      const body = await fetchCached("bazaar", hypixel.bazaar, 60_000);
-      history.recordSnapshot(body);
-      sendJson(response, 200, body);
+      const upstream = await fetchCached("bazaar", hypixel.bazaar, 60_000);
+      history.recordSnapshot(upstream);
+      sendApi(request, response, bazaarPayload(upstream));
       return;
     }
 
     if (url.pathname === "/api/auctions") {
       const page = Math.max(0, Number(url.searchParams.get("page") ?? 0) || 0);
-      sendJson(
-        response,
-        200,
-        await fetchCached(`auctions:${page}`, `${hypixel.auctions}?page=${page}`, 60_000),
+      const upstream = await fetchCached(
+        `auctions:${page}`,
+        `${hypixel.auctions}?page=${page}`,
+        60_000,
       );
+      sendApi(request, response, auctionPayload(upstream, `auctions:${page}`));
       return;
     }
 
@@ -116,8 +171,14 @@ createServer(async (request, response) => {
       return;
     }
 
-    await serveStatic(request.url ?? "/", response);
+    await serveStatic(request, response);
   } catch (error) {
+    // serveStatic may already have written headers, and writing a second set
+    // throws inside the handler and kills the socket.
+    if (response.headersSent) {
+      response.end();
+      return;
+    }
     sendJson(response, 502, {
       success: false,
       error: error instanceof Error ? error.message : "Unknown server error",

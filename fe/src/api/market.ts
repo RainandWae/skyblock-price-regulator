@@ -1,4 +1,4 @@
-import type { Auction, BazaarHistoryPoint, BazaarProduct } from "../types/market";
+import type { Auction, BazaarHistoryPoint, BazaarQuote } from "../types/market";
 
 export const fetchMarketData = async () => {
   const [bazaarResponse, auctionResponse] = await Promise.all([
@@ -13,8 +13,9 @@ export const fetchMarketData = async () => {
   const auctionData = await auctionResponse.json();
 
   return {
-    products: bazaarData.products as Record<string, BazaarProduct>,
-    auctions: (auctionData.auctions as Auction[]).filter((auction) => auction.bin).slice(0, 500),
+    products: bazaarData.products as Record<string, BazaarQuote>,
+    // The backend already filters to BIN listings and strips colour codes.
+    auctions: auctionData.auctions as Auction[],
   };
 };
 
