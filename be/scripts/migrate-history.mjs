@@ -2,9 +2,9 @@
 // Safe to re-run: points are keyed on (pid, at), so repeats overwrite in place.
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { createHistoryStore } from "../server/history.mjs";
+import { createHistoryStore } from "../src/history.mjs";
 
-const dataDir = join(process.cwd(), "data");
+const dataDir = process.env.DATA_DIR ?? join(process.cwd(), "data");
 const legacyFile = join(dataDir, "bazaar-history.json");
 
 let raw;

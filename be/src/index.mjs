@@ -5,9 +5,12 @@ import { createHistoryStore } from "./history.mjs";
 
 const port = Number(process.env.PORT ?? 8787);
 const host = process.env.HOST ?? "127.0.0.1";
-const root = process.cwd();
-const distDir = join(root, "dist");
-const dataDir = join(root, "data");
+// Resolved from the repo root, which is the cwd because the root package.json
+// runs the server with `node be/src/index.mjs` rather than through a workspace.
+// The env overrides exist so a host can point at a mounted disk explicitly.
+const root = process.env.APP_ROOT ?? process.cwd();
+const distDir = process.env.CLIENT_DIST ?? join(root, "fe", "dist");
+const dataDir = process.env.DATA_DIR ?? join(root, "data");
 const history = createHistoryStore(dataDir);
 const cache = new Map();
 
