@@ -1,4 +1,4 @@
-    # Public Deployment Plan
+# Public Deployment Plan
 
 This app is currently a Vite frontend served by a small Node backend. The backend also proxies Hypixel SkyBlock market data and stores Bazaar history in a SQLite database at `data/history.db`.
 
