@@ -15,7 +15,11 @@ const distDir = process.env.CLIENT_DIST ?? join(root, "fe", "dist");
 const dataDir = process.env.DATA_DIR ?? join(root, "data");
 const history = createHistoryStore(dataDir);
 const cache = new Map();
+const inFlight = new Map();
 const staticCache = new Map();
+
+// How long an upstream payload is reused, and how often a snapshot is recorded.
+const REFRESH_MS = 60_000;
 
 const bazaarPayload = createPayloadCache(trimBazaar);
 const auctionPayload = createPayloadCache(trimAuctions);
@@ -78,14 +82,53 @@ const fetchCached = async (key, url, ttlMs) => {
   const cached = cache.get(key);
   if (cached && Date.now() - cached.cachedAt < ttlMs) return cached.body;
 
-  const upstream = await fetch(url);
-  if (!upstream.ok) {
-    throw new Error(`Hypixel returned ${upstream.status}`);
-  }
+  // Collapse concurrent misses onto one upstream request. Without this, every
+  // client that arrives while the cache is stale starts its own fetch, so a
+  // burst of traffic at expiry fans out into a burst of calls to Hypixel.
+  const pending = inFlight.get(key);
+  if (pending) return pending;
 
-  const body = await upstream.json();
-  cache.set(key, { cachedAt: Date.now(), body });
-  return body;
+  const request = (async () => {
+    const upstream = await fetch(url);
+    if (!upstream.ok) {
+      throw new Error(`Hypixel returned ${upstream.status}`);
+    }
+
+    const body = await upstream.json();
+    cache.set(key, { cachedAt: Date.now(), body });
+    return body;
+  })().finally(() => inFlight.delete(key));
+
+  inFlight.set(key, request);
+  return request;
+};
+
+/**
+ * Records snapshots on a timer rather than from the request handler. Recording
+ * used to happen only when someone hit /api/bazaar, so history had gaps
+ * wherever nobody was using the site, and the first request after a restart
+ * paid for the whole write.
+ */
+const startBazaarRecorder = () => {
+  let timer = null;
+  let stopped = false;
+
+  const tick = async () => {
+    try {
+      history.recordSnapshot(await fetchCached("bazaar", hypixel.bazaar, REFRESH_MS));
+    } catch (error) {
+      console.error(`bazaar snapshot failed: ${error instanceof Error ? error.message : error}`);
+    }
+    // Chained rather than setInterval, so a slow upstream cannot overlap runs.
+    if (!stopped) timer = setTimeout(tick, REFRESH_MS);
+  };
+
+  tick();
+
+  return () => {
+    stopped = true;
+    clearTimeout(timer);
+  };
 };
 
 const serveStatic = async (request, response) => {
@@ -144,8 +187,8 @@ createServer(async (request, response) => {
     }
 
     if (url.pathname === "/api/bazaar") {
-      const upstream = await fetchCached("bazaar", hypixel.bazaar, 60_000);
-      history.recordSnapshot(upstream);
+      // Snapshots are recorded by startBazaarRecorder, not here.
+      const upstream = await fetchCached("bazaar", hypixel.bazaar, REFRESH_MS);
       sendApi(request, response, bazaarPayload(upstream));
       return;
     }
@@ -155,7 +198,7 @@ createServer(async (request, response) => {
       const upstream = await fetchCached(
         `auctions:${page}`,
         `${hypixel.auctions}?page=${page}`,
-        60_000,
+        REFRESH_MS,
       );
       sendApi(request, response, auctionPayload(upstream, `auctions:${page}`));
       return;
@@ -186,4 +229,5 @@ createServer(async (request, response) => {
   }
 }).listen(port, host, () => {
   console.log(`API server running at http://${host}:${port}`);
+  startBazaarRecorder();
 });

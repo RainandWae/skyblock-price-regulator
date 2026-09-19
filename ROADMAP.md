@@ -36,9 +36,11 @@ a 304 instead of a body.
 - [x] Trim `/api/auctions` to BIN listings and the two fields used
 - [x] Add gzip/brotli compression to API and static responses
 - [x] ETag revalidation on both endpoints
-- [ ] Move `history.recordSnapshot()` off the request path onto a timer. It
-      writes ~2,200 SQLite rows synchronously while a request waits
-      (`be/src/index.mjs`)
+- [x] Move `history.recordSnapshot()` off the request path onto a timer. It
+      also means history accumulates with nobody on the site, which is what
+      caused the 34-minute gaps in the existing data
+- [x] Collapse concurrent upstream misses onto one fetch, so a traffic burst at
+      cache expiry does not fan out into a burst of calls to Hypixel
 - [x] Re-measure egress after the change. Still to do: model cost at target
       user count
 
