@@ -18,6 +18,15 @@ A local Hypixel SkyBlock market dashboard for watching Bazaar order flips, spott
 - Local Bazaar history saved to SQLite for charting, with tiered retention
 - Device-local tracked buys saved in the browser
 
+## Layout
+
+```text
+be/    Node API server and the SQLite history store
+fe/    Vite + React dashboard
+```
+
+Both are npm workspaces. Installing at the root installs both.
+
 ## How To Run
 
 Install dependencies:

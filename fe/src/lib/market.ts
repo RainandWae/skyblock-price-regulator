@@ -1,7 +1,7 @@
 import type {
   Auction,
   AuctionSignal,
-  BazaarProduct,
+  BazaarQuote,
   FlipFilters,
   MarketSettings,
   MarketAlert,
@@ -16,13 +16,11 @@ const getEnchantmentLevel = (productId: string) => {
   return match ? Number(match[1]) : null;
 };
 
-export const toMarketItems = (bazaar: Record<string, BazaarProduct>): MarketItem[] =>
-  Object.values(bazaar)
-    .map((product) => {
-      const quick = product.quick_status;
-      const enchantmentLevel = getEnchantmentLevel(product.product_id);
-      const buyOrderPrice = quick.sellPrice;
-      const sellOrderPrice = quick.buyPrice;
+export const toMarketItems = (bazaar: Record<string, BazaarQuote>): MarketItem[] =>
+  Object.entries(bazaar)
+    .map(([productId, quick]) => {
+      const enchantmentLevel = getEnchantmentLevel(productId);
+      const { buyOrderPrice, sellOrderPrice } = quick;
       const spread = sellOrderPrice - buyOrderPrice;
       const spreadPercent = buyOrderPrice ? (spread / buyOrderPrice) * 100 : 0;
       const volume = quick.buyMovingWeek + quick.sellMovingWeek;
@@ -38,8 +36,8 @@ export const toMarketItems = (bazaar: Record<string, BazaarProduct>): MarketItem
       const practicalScore = spread > 0 ? spread * Math.max(spreadPercent, 0) * priceWeight * queueHealthScore : 0;
 
       return {
-        id: product.product_id,
-        name: cleanName(product.product_id),
+        id: productId,
+        name: cleanName(productId),
         enchantmentLevel,
         isIgnoredEnchantment: enchantmentLevel !== null && enchantmentLevel > 1,
         buyPrice: sellOrderPrice,
@@ -73,8 +71,11 @@ export const toMarketItems = (bazaar: Record<string, BazaarProduct>): MarketItem
 
 export const getAuctionSignals = (auctions: Auction[], settings?: Pick<MarketSettings, "ignoreAuctionBooks">): AuctionSignal[] => {
   const groups = new Map<string, Auction[]>();
+  // Books are gated by a setting, the rest are always noise. Keeping them in
+  // one array meant skipping element zero with slice(1), so anything added at
+  // the top silently disabled the books toggle.
+  const bookPattern = /enchanted book/i;
   const ignoredNamePatterns = [
-    /enchanted book/i,
     /\brune\b/i,
     /\bskin\b/i,
     /cake soul/i,
@@ -83,20 +84,20 @@ export const getAuctionSignals = (auctions: Auction[], settings?: Pick<MarketSet
   ];
 
   for (const auction of auctions) {
-    const key = auction.item_name.replace(/§./g, "");
-    const shouldIgnoreBook = settings?.ignoreAuctionBooks && /enchanted book/i.test(key);
-    const shouldIgnoreNoise = ignoredNamePatterns.slice(1).some((pattern) => pattern.test(key));
-    if (!auction.bin || shouldIgnoreBook || shouldIgnoreNoise) continue;
-    if (auction.starting_bid < 100_000) continue;
+    const key = auction.name;
+    const shouldIgnoreBook = settings?.ignoreAuctionBooks && bookPattern.test(key);
+    const shouldIgnoreNoise = ignoredNamePatterns.some((pattern) => pattern.test(key));
+    if (shouldIgnoreBook || shouldIgnoreNoise) continue;
+    if (auction.price < 100_000) continue;
     groups.set(key, [...(groups.get(key) ?? []), auction]);
   }
 
   return [...groups.entries()]
     .map(([name, list]) => {
-      const sorted = [...list].sort((a, b) => a.starting_bid - b.starting_bid);
-      const lowest = sorted[0]?.starting_bid ?? 0;
-      const secondLowest = sorted[1]?.starting_bid ?? lowest;
-      const median = sorted[Math.floor(sorted.length / 2)]?.starting_bid ?? lowest;
+      const sorted = [...list].sort((a, b) => a.price - b.price);
+      const lowest = sorted[0]?.price ?? 0;
+      const secondLowest = sorted[1]?.price ?? lowest;
+      const median = sorted[Math.floor(sorted.length / 2)]?.price ?? lowest;
       const gap = median - lowest;
       const discountPercent = median ? (gap / median) * 100 : 0;
       const undercutRisk = secondLowest > lowest ? Math.min((secondLowest - lowest) / Math.max(gap, 1), 1) : 0.15;

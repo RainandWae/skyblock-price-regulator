@@ -15,7 +15,7 @@ import { loadJson } from "./lib/storage";
 import type {
   Auction,
   BazaarHistoryPoint,
-  BazaarProduct,
+  BazaarQuote,
   FlipFilters as FlipFiltersType,
   MarketSettings,
   TrackedBuy,
@@ -33,7 +33,7 @@ const defaultSettings: MarketSettings = {
 };
 
 export default function App() {
-  const [bazaar, setBazaar] = useState<Record<string, BazaarProduct>>({});
+  const [bazaar, setBazaar] = useState<Record<string, BazaarQuote>>({});
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [historyPoints, setHistoryPoints] = useState<BazaarHistoryPoint[]>([]);
   const [tracked, setTracked] = useState<TrackedBuy[]>(() => loadJson(TRACKED_KEY, []));

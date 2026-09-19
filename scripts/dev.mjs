@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
 
 const commands = [
-  ["server", "node", ["server/index.mjs"]],
-  ["client", "npx", ["vite", "--host", "127.0.0.1"]],
+  ["server", "node", ["be/src/index.mjs"]],
+  ["client", "npm", ["run", "dev", "-w", "fe"]],
 ];
 
 const children = commands.map(([name, command, args]) => {
